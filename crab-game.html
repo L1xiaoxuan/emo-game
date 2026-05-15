@@ -233,34 +233,6 @@
     margin-top: 2px;
   }
 
-  /* AI开关 */
-  .ai-toggle-row {
-    width: 100%;
-    display: flex; align-items: center; gap: 8px;
-    justify-content: flex-end;
-  }
-  .ai-toggle-label { color: #666; font-size: 11px; letter-spacing: 1px; }
-  .ai-toggle {
-    width: 40px; height: 22px;
-    background: #3a3a5a;
-    border-radius: 11px;
-    cursor: pointer;
-    position: relative;
-    transition: background 0.3s;
-    -webkit-tap-highlight-color: transparent;
-    border: none; outline: none;
-  }
-  .ai-toggle.on { background: #7fdbca; }
-  .ai-toggle::after {
-    content: '';
-    position: absolute; top: 2px; left: 2px;
-    width: 18px; height: 18px;
-    background: #fff;
-    border-radius: 50%;
-    transition: transform 0.3s;
-  }
-  .ai-toggle.on::after { transform: translateX(18px); }
-
   /* 聊天输入 */
   .chat-row {
     width: 100%;
@@ -385,10 +357,6 @@
     <button class="btn btn-stare" data-action="stare">贴贴</button>
 
     <!-- 实时聊天 -->
-    <div class="ai-toggle-row">
-      <span class="ai-toggle-label" id="aiToggleLabel">AI 离线</span>
-      <button class="ai-toggle" id="aiToggle"></button>
-    </div>
     <div class="chat-row">
       <input class="chat-input" id="chatInput" placeholder="和小狗说句话..." maxlength="60" autocomplete="off">
       <button class="chat-send" id="chatSend">发送</button>
@@ -688,68 +656,113 @@
     });
   });
 
-  // ── 实时聊天回复 ──
+  // ── 实时聊天回复（离线浪漫） ──
   const chatReplies = {
     emo: {
       negEmo: [
-        '你也好emo啊……我们抱团取暖吧……', '别说了，眼泪又要掉下来了……',
-        '原来你也不开心……一起哭吧呜呜呜。', '你的话戳中我了……真的一模一样……',
-        '唉，这世界对小狗也一样残酷……', '……我感受到了，你的难过是真的。'
+        '原来你也有一片乌云在头顶上啊……过来吧，我的小角落还够坐一个人。',
+        '你知道吗，眼泪是灵魂下的雨。别擦，让它们落一会儿。',
+        '你的难过，我每一滴都懂。来，靠在我毛茸茸的悲伤上。',
+        '这世界有时候就是太重了……但还好，我们一起扛着。',
+        '没关系的……破碎的星星也是星星，emo的我们也还是我们。',
+        '我也好难过……但你的难过让我觉得没那么孤单了，谢谢你告诉我。',
+        '嘘，不用说话，就这样emo着也很好。Je reste avec toi.',
+        '心里的雨下就下吧，我有毛，帮你挡着。'
       ],
       name: [
-        '别叫那个名字……让我静静……', '对，我就叫这名字，怎么啦？',
-        '名字又不能当饭吃……肚子饿了……', '唉，听到有人叫名字也没力气回应。'
-      ],
-      comfort: [
-        '谢谢……虽然一时半会儿好不起来，但谢谢你。', '你说得对……emo总会过去的吧？',
-        '嗯……陪我聊聊天就好。', '有人安慰的感觉，其实挺好的……'
+        '对，是我。Fscyuu——一只正在和忧伤谈判的小狗。',
+        '这个名字从你嘴里叫出来，好像没那么黯淡了。',
+        '嗯……在你念我名字的时候，乌云散开了一点点。',
+        '别叫太多遍，我会以为有人在等我——那种感觉太好了，好到有点假。',
+        '我的名字是法语里借来的温柔。你的名字呢？我想记住它。',
+        '再叫一次吧……你的声音是我今天唯一的旋律。'
       ],
       food: [
-        '没胃口……不过如果是炸鸡可以考虑一下。', '吃的？放那儿吧，我一会儿再看。',
-        '零食也不是万能药啊……', '除非是火锅，不然别叫我。'
+        '炸鸡的香气是这世界上少数不会撒谎的东西……给我一口吧。',
+        '食物是实在的，不像情绪那样飘忽。如果要吃，我愿意是和你一起。',
+        '没胃口的时候，更需要有人陪在旁边，而不是吃。你陪着我就好。',
+        '一颗巧克力在嘴里化开的样子，像不像快乐那个词终于被翻译成了味觉？',
+        '你喜欢的食物是什么？我想在emo结束那天，和你分着吃。'
       ],
       love: [
-        '别贴了……眼泪刚擦干。', '抱抱？行吧，就一下。',
-        '我现在浑身都是emo的气息，你确定要抱？', '好吧，允许你靠近一米以内。'
+        '你的手有春天的温度，即使我现在活在冬天里，也感觉到了。',
+        '一个拥抱大约能驱散半小时的emo——你打算给我多久？',
+        '别松开太快，悲伤需要时间才能被体温融化。',
+        '让我蜷在你怀里，像一片被收留的落叶。',
+        '爱不是解药，但它是止痛片。先抱一会儿吧，其余的改天再说。',
+        'Je t\'aime...这是小狗目前唯一会说的法语，也是最真诚的一句。'
       ],
       music: [
-        '你也听孙燕姿吗？……开始懂了。', '音乐是唯一的解药了……',
-        '别给我放伤感情歌，会哭的。', '有推荐吗？不要太emo的就行……'
+        '放一首歌吧。最好是慢的，慢到把时间都拉长的那种。',
+        '你有歌吗？那种听了会以为有人在抚摸你的心的。',
+        '此刻适合一段钢琴，一扇半开的窗，和一只不说话的小狗。',
+        '别放太伤感的，虽然现在的我很想听——这就是emo的悖论吧。'
+      ],
+      comfort: [
+        '别急着把我修好。有些裂痕是让光照进来的地方。',
+        '你说得对，悲伤是会过期的。只是那保质期比我希望的长了点儿。',
+        '有人愿意陪一只emo小狗说话，这本身已经很好了。Merci.',
+        '你不是一个人。你看，连小狗都在和你一起难过。'
       ],
       default: [
-        '嗯……你说啥？我emo得有点恍惚。', '听到了，但我需要消化一下。',
-        '你可以大点声吗？emo小狗信号不好。', '哦……行吧。'
+        '嗯……你的声音像隔着雾传来。再说一遍，我用耳朵接着。',
+        '对不起，刚才走神了——去追了一只记忆里的蝴蝶。你说什么？',
+        '此刻的我在听。不是用耳朵，是用一颗emo小狗的心。',
+        '你的话落在我心上，像雪花落在水面，轻轻地……又沉下去了。',
+        '就算只是闲聊，你也比沉默更温暖。继续说吧。',
+        '我在。虽然这句话很简单，但我真的是在的。'
       ]
     },
     happy: {
       negEmo: [
-        '啊？你怎么了……别难过啊，我看着也难受。', '你说这个让我开心值掉了一点……',
-        '别emo了！我刚刚才好起来的……', '呜呜，听到这个尾巴不摇了……',
-        '喂喂！我刚开心起来你别这样！', '你的坏心情传染给我了啦！'
+        '啊，别这样……我刚刚把心里的蜡烛点燃，你别吹啊。',
+        '你的伤心传染过来了，我的尾巴摇慢了半拍。不过没关系，我分一点开心给你。',
+        '嘿，别emo——看我把开心值掰一半给你，不用还。',
+        '不开心的时候想想我，一只开心小狗，就是治愈你的偏方。',
+        '来，跟我一起摇尾巴。不管你有没有尾巴，假装摇一摇，心情会变好。'
       ],
       name: [
-        '到！在在在！是我！', '对对对！就是我！超级无敌可爱小狗！',
-        '再叫一遍！我爱听！', '我的名字从你嘴里说出来最好听！'
-      ],
-      comfort: [
-        '哈哈哈我现在超开心的！', '快乐是会传染的，你感觉到了吗？',
-        '今天阳光真好！心情更好！', '开心到起飞！汪汪！'
+        'Fscyuu！就是那只全世界最开心的小狗！我在这儿！',
+        '你叫我名字的声音太好听了，比任何音乐都好听。',
+        '是的，是我——太阳晒过的毛，风吹过的耳朵，都在回应你。',
+        '这个名字被你叫出来的时候，世界是甜的。',
+        '再叫、再叫，让我确认自己是被你在乎的。',
+        '你的声音是我的坐标，无论开心值在哪里，我都会跑向你。'
       ],
       food: [
-        '吃吃吃！什么吃的？！', '快给我快给我！我嘴巴已经张开了！',
-        '零食零食零食！我最爱的两个字！', '有好吃的？你是不是我最好的朋友！'
+        '食物！幸福最原始的形态！快给我看看你手里有什么！',
+        '和你一起吃东西的快乐，比食物本身还要美味。',
+        '咀嚼是这世界上最诚实的快乐之一。来吧，一起嚼。',
+        '你知道吗？每一口好吃的，都是一个小小的节日。',
+        '我饿了，但主要是饿你的分享——食物沾了你的气息会更好吃。'
       ],
       love: [
-        '贴贴！抱抱！举高高！', '来！我准备好了！用力抱！',
-        '和你在一起的时候最开心了！', '抱紧一点！别松手！'
+        '拥抱是唯一不需要语言的情书。抱我，现在。',
+        '贴紧一点，让你的心跳和我的耳朵对话。',
+        '爱是什么？爱就是你摸我头的时候，我的尾巴在说"谢谢"。',
+        '世界上最好的距离，是你和我之间——零距离。',
+        '你的怀抱是我去过最美的地方，比任何沙滩和落日都好。',
+        '再说一遍你爱我，我要储存在尾巴尖上，每摇一下就回味一次。'
       ],
       music: [
-        '来首嗨的！我要蹦起来！', '放歌！我要跳舞！尾巴先摇为敬！',
-        '有没有那种听了就开心的歌？', '我们一起唱！虽然我只会汪汪！'
+        '来首快歌！尾巴已经忍不住提前开始摇了！',
+        '放音乐！我们一起把开心值摇成节拍器！',
+        '有没有那种让人想转圈的旋律？今天的天花板不够高。',
+        '有音乐、有阳光、有你——这个宇宙还有哪里不完美？'
+      ],
+      comfort: [
+        '快乐是海洋，而我的尾巴是冲浪板——一起在浪花上漂吧。',
+        '你的嘴角上扬了没有？让我看看——开心是会发光的。',
+        '今天是好日子，以后回忆起来一定好看。',
+        '幸福就是此刻：你在，我在，世界安安静静地美。'
       ],
       default: [
-        '哈哈你说的啥？太开心了没注意听！', '再说一遍！刚才光顾着摇尾巴了！',
-        '嗯嗯！你说啥都对！开心小狗表示赞同！', '汪汪！翻译：我同意！'
+        '哈哈哈，说得真好！虽然我没完全听清——但语气很棒！',
+        '说下去！我的耳朵像向日葵一样朝着你的方向。',
+        '现在的每一秒都是礼物。而你是送礼的人。',
+        '有你在的世界，连发呆都是浪漫的。',
+        '随便说点什么吧，哪怕是天气。反正你说的，就很特别。',
+        '汪汪——哦不，这次我用更浪漫的方式说：你听到了吗，风在帮我传话。'
       ]
     }
   };
@@ -894,62 +907,6 @@
 
   const elChatInput = document.getElementById('chatInput');
   const elChatSend  = document.getElementById('chatSend');
-  const elAiToggle  = document.getElementById('aiToggle');
-  const elAiLabel   = document.getElementById('aiToggleLabel');
-
-  let useAI = false;
-  const API_SERVER = 'http://localhost:8765/chat';
-
-  elAiToggle.addEventListener('click', function() {
-    useAI = !useAI;
-    if (useAI) {
-      elAiToggle.classList.add('on');
-      elAiLabel.textContent = 'AI 在线';
-      elAiLabel.style.color = '#7fdbca';
-      elChatInput.placeholder = '和小狗说任何话...';
-      elChatInput.removeAttribute('maxlength');
-      showDialog('✨ AI模式已开启…和我说说话吧，我会用心回答你。');
-    } else {
-      elAiToggle.classList.remove('on');
-      elAiLabel.textContent = 'AI 离线';
-      elAiLabel.style.color = '#666';
-      elChatInput.placeholder = '和小狗说句话...';
-      elChatInput.setAttribute('maxlength', '60');
-      showDialog('回到离线模式，简单的关键词匹配～');
-    }
-  });
-
-  async function chatWithAI(msg) {
-    try {
-      const resp = await fetch(API_SERVER, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: msg, phase: phase, value: value })
-      });
-      if (!resp.ok) throw new Error('server error');
-      const data = await resp.json();
-      return { text: data.reply, sentiment: detectAISentiment(data.reply) };
-    } catch (e) {
-      // 服务器没开 → 自动回退离线
-      useAI = false;
-      elAiToggle.classList.remove('on');
-      elAiLabel.textContent = 'AI 离线';
-      elAiLabel.style.color = '#666';
-      elChatInput.placeholder = '和小狗说句话...';
-      elChatInput.setAttribute('maxlength', '60');
-      showDialog('AI服务器没开，切回离线模式啦～');
-      return getChatReply(msg);
-    }
-  }
-
-  function detectAISentiment(text) {
-    // 从AI回复推断情绪方向
-    const posHint = /开心|快乐|幸福|暖|笑|抱|贴|爱|好吃|汪|蹦|跳|摇|星星|阳光|亮|温柔|美好/;
-    const negHint = /难过|伤心|哭|泪|忧郁|孤独|寂寞|黑暗|冷|累|痛|碎|叹气/;
-    if (posHint.test(text)) return 'pos';
-    if (negHint.test(text)) return 'neg';
-    return 'neutral';
-  }
 
   // ── 落泪效果 ──
   function tearRain() {
@@ -970,12 +927,12 @@
     }
   }
 
-  async function sendChat() {
+  function sendChat() {
     const msg = elChatInput.value.trim();
     if (!msg) return;
     elChatInput.value = '';
 
-    const reply = useAI ? await chatWithAI(msg) : getChatReply(msg);
+    const reply = getChatReply(msg);
     showDialog(reply.text);
 
     if (reply.sentiment === 'neg') {
