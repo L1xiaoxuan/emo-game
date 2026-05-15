@@ -101,6 +101,10 @@
     0% { opacity: 1; transform: translateY(0) scale(1); }
     100% { opacity: 0; transform: translateY(-40px) scale(0.3); }
   }
+  @keyframes tearFall {
+    0% { opacity: 1; transform: translateY(0); }
+    100% { opacity: 0; transform: translateY(140px); }
+  }
 
   /* 状态标签 */
   .phase-tag {
@@ -229,6 +233,68 @@
     margin-top: 2px;
   }
 
+  /* AI开关 */
+  .ai-toggle-row {
+    width: 100%;
+    display: flex; align-items: center; gap: 8px;
+    justify-content: flex-end;
+  }
+  .ai-toggle-label { color: #666; font-size: 11px; letter-spacing: 1px; }
+  .ai-toggle {
+    width: 40px; height: 22px;
+    background: #3a3a5a;
+    border-radius: 11px;
+    cursor: pointer;
+    position: relative;
+    transition: background 0.3s;
+    -webkit-tap-highlight-color: transparent;
+    border: none; outline: none;
+  }
+  .ai-toggle.on { background: #7fdbca; }
+  .ai-toggle::after {
+    content: '';
+    position: absolute; top: 2px; left: 2px;
+    width: 18px; height: 18px;
+    background: #fff;
+    border-radius: 50%;
+    transition: transform 0.3s;
+  }
+  .ai-toggle.on::after { transform: translateX(18px); }
+
+  /* 聊天输入 */
+  .chat-row {
+    width: 100%;
+    display: flex; gap: 8px;
+    margin-top: 4px;
+  }
+  .chat-input {
+    flex: 1;
+    background: #2a2a3e;
+    border: 2px solid #3a3a5a;
+    border-radius: 12px;
+    padding: 10px 14px;
+    color: #e0e0e0;
+    font-size: clamp(12px, 2.8vw, 14px);
+    outline: none;
+    transition: border-color 0.2s;
+    font-family: inherit;
+  }
+  .chat-input:focus { border-color: #7fdbca; }
+  .chat-input::placeholder { color: #555; }
+  .chat-send {
+    padding: 10px 16px;
+    border-radius: 12px;
+    border: 2px solid #7fdbca;
+    background: rgba(127, 219, 202, 0.1);
+    color: #7fdbca;
+    font-size: clamp(12px, 2.8vw, 14px);
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .chat-send:active { background: #7fdbca; color: #1a1a2e; }
+
   /* 底部提示 */
   .hint {
     color: #555;
@@ -317,6 +383,16 @@
       <button class="btn" data-action="call">叫名字</button>
     </div>
     <button class="btn btn-stare" data-action="stare">贴贴</button>
+
+    <!-- 实时聊天 -->
+    <div class="ai-toggle-row">
+      <span class="ai-toggle-label" id="aiToggleLabel">AI 离线</span>
+      <button class="ai-toggle" id="aiToggle"></button>
+    </div>
+    <div class="chat-row">
+      <input class="chat-input" id="chatInput" placeholder="和小狗说句话..." maxlength="60" autocomplete="off">
+      <button class="chat-send" id="chatSend">发送</button>
+    </div>
 
     <!-- 底部提示 -->
     <div class="hint">TAP THE PUPPY TO INTERACT</div>
@@ -450,6 +526,8 @@
       switchToHappy();
     } else if (phase === 'happy' && value >= 100) {
       showToast('🎉 开心值满啦！小狗超快乐！');
+    } else if (phase === 'happy' && value <= 0) {
+      switchToEmo();
     }
   }
 
@@ -484,6 +562,38 @@
     }, 200);
 
     showToast('✨ emo消散！开心模式开启 ✨');
+  }
+
+  function switchToEmo() {
+    phase = 'emo';
+    value = 100;
+
+    elProgressFill.classList.remove('happy-bar');
+    elProgressFill.classList.add('emo-bar');
+    elProgressFill.style.width = '100%';
+
+    elProgressVal.classList.remove('happy-val');
+    elProgressVal.classList.add('emo-val');
+    elProgressVal.textContent = '100';
+
+    elProgressLbl.textContent = 'emo值';
+    elProgressLbl.style.color = '#6495ED';
+
+    elPhaseTag.classList.remove('happy');
+    elPhaseTag.classList.add('emo');
+    elPhaseTag.innerHTML = '🌧️ emo中';
+
+    btns.forEach(b => {
+      b.classList.remove('happy-btn');
+    });
+
+    elDialog.style.opacity = '0';
+    setTimeout(() => {
+      elDialog.textContent = '你说了伤人的话……我又emo了……';
+      elDialog.style.opacity = '1';
+    }, 200);
+
+    showToast('💔 心情跌落……emo回归 💔');
   }
 
   // ── 气泡文字 ──
@@ -576,6 +686,327 @@
 
       if (cfg.anim) charAnim(cfg.anim);
     });
+  });
+
+  // ── 实时聊天回复 ──
+  const chatReplies = {
+    emo: {
+      negEmo: [
+        '你也好emo啊……我们抱团取暖吧……', '别说了，眼泪又要掉下来了……',
+        '原来你也不开心……一起哭吧呜呜呜。', '你的话戳中我了……真的一模一样……',
+        '唉，这世界对小狗也一样残酷……', '……我感受到了，你的难过是真的。'
+      ],
+      name: [
+        '别叫那个名字……让我静静……', '对，我就叫这名字，怎么啦？',
+        '名字又不能当饭吃……肚子饿了……', '唉，听到有人叫名字也没力气回应。'
+      ],
+      comfort: [
+        '谢谢……虽然一时半会儿好不起来，但谢谢你。', '你说得对……emo总会过去的吧？',
+        '嗯……陪我聊聊天就好。', '有人安慰的感觉，其实挺好的……'
+      ],
+      food: [
+        '没胃口……不过如果是炸鸡可以考虑一下。', '吃的？放那儿吧，我一会儿再看。',
+        '零食也不是万能药啊……', '除非是火锅，不然别叫我。'
+      ],
+      love: [
+        '别贴了……眼泪刚擦干。', '抱抱？行吧，就一下。',
+        '我现在浑身都是emo的气息，你确定要抱？', '好吧，允许你靠近一米以内。'
+      ],
+      music: [
+        '你也听孙燕姿吗？……开始懂了。', '音乐是唯一的解药了……',
+        '别给我放伤感情歌，会哭的。', '有推荐吗？不要太emo的就行……'
+      ],
+      default: [
+        '嗯……你说啥？我emo得有点恍惚。', '听到了，但我需要消化一下。',
+        '你可以大点声吗？emo小狗信号不好。', '哦……行吧。'
+      ]
+    },
+    happy: {
+      negEmo: [
+        '啊？你怎么了……别难过啊，我看着也难受。', '你说这个让我开心值掉了一点……',
+        '别emo了！我刚刚才好起来的……', '呜呜，听到这个尾巴不摇了……',
+        '喂喂！我刚开心起来你别这样！', '你的坏心情传染给我了啦！'
+      ],
+      name: [
+        '到！在在在！是我！', '对对对！就是我！超级无敌可爱小狗！',
+        '再叫一遍！我爱听！', '我的名字从你嘴里说出来最好听！'
+      ],
+      comfort: [
+        '哈哈哈我现在超开心的！', '快乐是会传染的，你感觉到了吗？',
+        '今天阳光真好！心情更好！', '开心到起飞！汪汪！'
+      ],
+      food: [
+        '吃吃吃！什么吃的？！', '快给我快给我！我嘴巴已经张开了！',
+        '零食零食零食！我最爱的两个字！', '有好吃的？你是不是我最好的朋友！'
+      ],
+      love: [
+        '贴贴！抱抱！举高高！', '来！我准备好了！用力抱！',
+        '和你在一起的时候最开心了！', '抱紧一点！别松手！'
+      ],
+      music: [
+        '来首嗨的！我要蹦起来！', '放歌！我要跳舞！尾巴先摇为敬！',
+        '有没有那种听了就开心的歌？', '我们一起唱！虽然我只会汪汪！'
+      ],
+      default: [
+        '哈哈你说的啥？太开心了没注意听！', '再说一遍！刚才光顾着摇尾巴了！',
+        '嗯嗯！你说啥都对！开心小狗表示赞同！', '汪汪！翻译：我同意！'
+      ]
+    }
+  };
+
+  // ── 上下文记忆 ──
+  let chatMemory = { lastTopic: null, lastSentiment: null, negStreak: 0, posStreak: 0, history: [] };
+
+  // ── 输入归一化（模糊匹配） ──
+  function normalize(text) {
+    return text.toLowerCase()
+      .replace(/[？！！？。，、；：…\.\,\!\?\s]+/g, '')
+      .replace(/[啊呢吧呀嘛哦哟嘻嘿呜嗷]$/g, '')
+      .replace(/(.)\1{2,}/g, '$1$1');
+  }
+
+  // ── 同义词组 ──
+  const synNeg = {
+    sad:    ['难过','伤心','伤心欲绝','难受','想哭','心碎','心痛','心塞'],
+    tired:  ['好累','累死','累死了','太累','累坏了','累','好累啊'],
+    annoyed:['好烦','烦死了','很烦','烦躁','烦人','烦'],
+    despair:['绝望','崩溃','完了','没救了','完蛋'],
+    lonely: ['孤独','寂寞','一个人','孤单'],
+    hate:   ['讨厌','恨','不喜欢','厌烦'],
+    bored:  ['无聊','无聊死了','没意思','好无聊','没劲'],
+    fear:   ['害怕','恐惧','怕','好怕'],
+    angry:  ['生气','愤怒','火大','恼火'],
+    fail:   ['失败','没用','不行','算了','没用的']
+  };
+  const synPos = {
+    happy:  ['开心','快乐','高兴','幸福','哈哈','嘻嘻','嘿嘿','耶'],
+    food:   ['好吃','好喝','美味','馋','香的','好吃啊'],
+    love:   ['喜欢','爱','超爱','最爱','爱你'],
+    cheer:  ['加油','会好的','没事','没关系','可以的','撑住'],
+    cute:   ['可爱','萌','乖','棒','好','帅','漂亮','好看'],
+    warm:   ['温暖','美好','感动','暖','治愈'],
+    miss:   ['想你','想你了','想你啦','好想你'],
+    hug:    ['抱抱','贴贴','抱','贴','亲','亲亲','抱紧'],
+    music:  ['听歌','唱歌','音乐','歌','孙燕姿'],
+    name:   ['fscyuu','名字','叫名字','叫你','小狗'],
+    eat:    ['吃','饿','零食','饭','火锅','炸鸡','饿了']
+  };
+
+  // ── 意图检测 ──
+  function detectIntent(text, score) {
+    if (/[？?]|什么|怎么|为什|谁|哪里|哪儿|哪个|吗|有没有|能不能/.test(text)) return 'question';
+    if (/别跑|过来|过来嘛|帮|给|来|去|叫|说|唱|跳/.test(text)) return 'command';
+    if (/哈哈|嘻嘻|嘿嘿|汪汪|哦耶/.test(text)) return 'playful';
+    if (score < -1) return 'complain';
+    return 'chat';
+  }
+
+  // ── 语义打分 ──
+  function sentimentScore(text) {
+    const raw = normalize(text);
+    let score = 0;
+    // 检查否定前缀
+    const negPrefix = /^[不没别]|不要|不会|没有|不是/.test(raw);
+    for (const [topic, words] of Object.entries(synNeg)) {
+      if (words.some(w => raw.includes(w))) {
+        score += negPrefix ? 1 : -1;
+      }
+    }
+    for (const [topic, words] of Object.entries(synPos)) {
+      if (words.some(w => raw.includes(w))) {
+        score += negPrefix ? -1 : 1;
+      }
+    }
+    return score;
+  }
+
+  // ── 话题检测 ──
+  function detectTopic(text) {
+    const raw = normalize(text);
+    const all = { ...synNeg, ...synPos };
+    const negTopics = Object.keys(synNeg);
+    for (const [topic, words] of Object.entries(all)) {
+      if (words.some(w => raw.includes(w))) {
+        return negTopics.includes(topic) ? 'neg:' + topic : 'pos:' + topic;
+      }
+    }
+    return null;
+  }
+
+  // ── 生成回复 ──
+  function getChatReply(input) {
+    const text = input.toLowerCase().trim();
+    const p = phase;
+    const s = sentimentScore(text);
+    const intent = detectIntent(text, s);
+    const topic = detectTopic(text);
+
+    // 更新上下文
+    if (topic !== chatMemory.lastTopic) {
+      chatMemory.lastTopic = topic;
+    }
+    if (s < 0) { chatMemory.negStreak++; chatMemory.posStreak = 0; }
+    else if (s > 0) { chatMemory.posStreak++; chatMemory.negStreak = 0; }
+    else { chatMemory.negStreak = Math.max(0, chatMemory.negStreak - 1); chatMemory.posStreak = Math.max(0, chatMemory.posStreak - 1); }
+    chatMemory.lastSentiment = s < 0 ? 'neg' : s > 0 ? 'pos' : 'neutral';
+    chatMemory.history.push(text);
+    if (chatMemory.history.length > 8) chatMemory.history.shift();
+
+    // 连续消极加深（3+轮）→ 加深emo回复
+    const deepNeg = chatMemory.negStreak >= 3;
+
+    if (s < 0) {
+      if (deepNeg) {
+        const deepReplies = p === 'emo'
+          ? ['你已经说了好多难过的事了……我emo到不行了……', '呜呜，一而再再而三……眼泪都流干了……', '别再说了……小狗已经缩在角落里了……', '怎么这么难啊……我也有点撑不住了……']
+          : ['你一直说消极的话……我的开心值撑不住了……', '别这样……我被你感染了……', '天哪，连开心小狗都快被你带emo了……'];
+        return { text: randPick(deepReplies), sentiment: 'neg' };
+      }
+      return { text: randPick(chatReplies[p].negEmo), sentiment: 'neg' };
+    }
+    if (s > 0) {
+      // 连续积极 → 快速恢复
+      if (chatMemory.posStreak >= 3) {
+        return { text: randPick(chatReplies[p].love), sentiment: 'pos' };
+      }
+      if (topic && topic.startsWith('pos:')) {
+        const cat = topic.slice(4);
+        if (cat === 'eat') return { text: randPick(chatReplies[p].food), sentiment: 'pos' };
+        if (cat === 'hug') return { text: randPick(chatReplies[p].love), sentiment: 'pos' };
+        if (cat === 'music') return { text: randPick(chatReplies[p].music), sentiment: 'pos' };
+        if (cat === 'name') return { text: randPick(chatReplies[p].name), sentiment: 'pos' };
+      }
+      return { text: randPick(chatReplies[p].default), sentiment: 'pos' };
+    }
+    // neutral → 触发问候/话题延续/反问
+    if (intent === 'question') {
+      return { text: randPick([
+        '你问得很好……让我想想……','嗯？我不确定诶。','你问我？我也想知道答案呢……','好问题！不过小狗只想吃东西。'
+      ]), sentiment: 'neutral' };
+    }
+    if (chatMemory.lastTopic) {
+      return { text: randPick(['嗯……继续说呀。','然后呢？我在听。','你刚才说的，再讲讲呗～','嗯嗯，我听着呢。']), sentiment: 'neutral' };
+    }
+    return { text: randPick(chatReplies[p].default), sentiment: 'neutral' };
+  }
+
+  function randPick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+  const elChatInput = document.getElementById('chatInput');
+  const elChatSend  = document.getElementById('chatSend');
+  const elAiToggle  = document.getElementById('aiToggle');
+  const elAiLabel   = document.getElementById('aiToggleLabel');
+
+  let useAI = false;
+  const API_SERVER = 'http://localhost:8765/chat';
+
+  elAiToggle.addEventListener('click', function() {
+    useAI = !useAI;
+    if (useAI) {
+      elAiToggle.classList.add('on');
+      elAiLabel.textContent = 'AI 在线';
+      elAiLabel.style.color = '#7fdbca';
+      elChatInput.placeholder = '和小狗说任何话...';
+      elChatInput.removeAttribute('maxlength');
+      showDialog('✨ AI模式已开启…和我说说话吧，我会用心回答你。');
+    } else {
+      elAiToggle.classList.remove('on');
+      elAiLabel.textContent = 'AI 离线';
+      elAiLabel.style.color = '#666';
+      elChatInput.placeholder = '和小狗说句话...';
+      elChatInput.setAttribute('maxlength', '60');
+      showDialog('回到离线模式，简单的关键词匹配～');
+    }
+  });
+
+  async function chatWithAI(msg) {
+    try {
+      const resp = await fetch(API_SERVER, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: msg, phase: phase, value: value })
+      });
+      if (!resp.ok) throw new Error('server error');
+      const data = await resp.json();
+      return { text: data.reply, sentiment: detectAISentiment(data.reply) };
+    } catch (e) {
+      // 服务器没开 → 自动回退离线
+      useAI = false;
+      elAiToggle.classList.remove('on');
+      elAiLabel.textContent = 'AI 离线';
+      elAiLabel.style.color = '#666';
+      elChatInput.placeholder = '和小狗说句话...';
+      elChatInput.setAttribute('maxlength', '60');
+      showDialog('AI服务器没开，切回离线模式啦～');
+      return getChatReply(msg);
+    }
+  }
+
+  function detectAISentiment(text) {
+    // 从AI回复推断情绪方向
+    const posHint = /开心|快乐|幸福|暖|笑|抱|贴|爱|好吃|汪|蹦|跳|摇|星星|阳光|亮|温柔|美好/;
+    const negHint = /难过|伤心|哭|泪|忧郁|孤独|寂寞|黑暗|冷|累|痛|碎|叹气/;
+    if (posHint.test(text)) return 'pos';
+    if (negHint.test(text)) return 'neg';
+    return 'neutral';
+  }
+
+  // ── 落泪效果 ──
+  function tearRain() {
+    const count = 6;
+    for (let i = 0; i < count; i++) {
+      setTimeout(() => {
+        const tear = document.createElement('span');
+        tear.textContent = '💧';
+        tear.style.cssText = [
+          'position:absolute; pointer-events:none; font-size:18px;',
+          'animation: tearFall 1.5s ease-in forwards;',
+          'left:' + (10 + Math.random() * 70) + '%;',
+          'top:' + (-10 - Math.random() * 20) + 'px;'
+        ].join('');
+        elCharArea.appendChild(tear);
+        tear.addEventListener('animationend', () => tear.remove());
+      }, i * 150);
+    }
+  }
+
+  async function sendChat() {
+    const msg = elChatInput.value.trim();
+    if (!msg) return;
+    elChatInput.value = '';
+
+    const reply = useAI ? await chatWithAI(msg) : getChatReply(msg);
+    showDialog(reply.text);
+
+    if (reply.sentiment === 'neg') {
+      const scale = chatMemory.negStreak >= 3 ? 8 : 5; // 连续消极加大影响
+      if (phase === 'emo') {
+        if (value >= 100) {
+          tearRain();
+          sparkle('💧');
+        } else {
+          changeValue(+scale);
+          sparkle('💔');
+        }
+      } else {
+        changeValue(-scale);
+        sparkle('😟');
+      }
+    } else if (reply.sentiment === 'pos') {
+      const scale = chatMemory.posStreak >= 3 ? 3 : 2;
+      if (phase === 'emo') {
+        changeValue(-scale);
+        sparkle(chatMemory.posStreak >= 3 ? '🌟' : '💬');
+      } else {
+        changeValue(+scale);
+        sparkle(chatMemory.posStreak >= 3 ? '🌟' : '💬');
+      }
+    }
+  }
+
+  elChatSend.addEventListener('click', sendChat);
+  elChatInput.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') { e.preventDefault(); sendChat(); }
   });
 
   // ── 防止双击缩放 ──
