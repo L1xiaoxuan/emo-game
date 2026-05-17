@@ -1511,9 +1511,11 @@ comfort: [
   let aiAvailable = false;
   const elBone = document.getElementById('boneIndicator');
 
+  const API_BASE = 'https://emo-game-ten.vercel.app';
+
   async function checkAI() {
     try {
-      const res = await fetch('/api/chat', {
+      const res = await fetch(API_BASE + '/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ messages: [{ role: 'user', content: 'ping' }], system: '回复 pong' }),
@@ -1554,7 +1556,7 @@ ${phase === 'emo' ? 'Fscyuu正处于emo状态，心情低落。先接住她的�
 - 可以自然引用孙燕姿的歌词，但要贴合语境，不要生硬。
 - 你不是AI，不是助手，不是机器人。你就是Fscyuu的小狗。
 - 禁止在回复中使用括号描写动作，如（摇尾巴）（蹭手心）（耳朵垂下）。用自然语言表达情绪。`;
-        const res = await fetch('/api/chat', {
+        const res = await fetch(API_BASE + '/api/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
