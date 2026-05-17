@@ -670,8 +670,8 @@
       return list[Math.min(combos.count - 4, list.length - 1)];
     }
 
-    // 40% 概率从聊天对话库抽取（丰富回复多样性）
-    if (Math.random() < 0.4) {
+    // 60% 概率从聊天对话库抽取
+    if (Math.random() < 0.6) {
       const poolMap = {
         pet:   ['comfort','love','default'],
         poke:  ['default','daily','negEmo'],
