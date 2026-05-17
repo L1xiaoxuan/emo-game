@@ -1534,7 +1534,19 @@ comfort: [
         if (reply) {
           showDialog(reply);
           elBone.classList.add('show');
-          sparkle('💬');
+          // 轻量情绪检测 → 数值变化
+          const negWords = /难过|伤心|emo|不开心|好累|好烦|好想|讨厌|痛苦|焦虑|害怕|崩溃|孤独|后悔|想哭|失眠|压抑/;
+          const posWords = /开心|快乐|哈哈|嘻嘻|喜欢|爱你|谢谢|好棒|加油|温暖|感动/;
+          const isNeg = negWords.test(msg), isPos = posWords.test(msg);
+          if (isNeg && !isPos) {
+            if (phase === 'emo') { changeValue(+5); sparkle('💔'); if (value >= 96) tearRain(); }
+            else { changeValue(-5); sparkle('😟'); }
+          } else if (isPos && !isNeg) {
+            if (phase === 'emo') { changeValue(-3); sparkle('💬'); }
+            else { changeValue(+3); sparkle('💬'); }
+          } else {
+            sparkle('💬');
+          }
         }
       } catch { aiAvailable = false; elBone.classList.remove('show'); }
       elChatInput.disabled = false;
