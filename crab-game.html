@@ -1522,11 +1522,11 @@ comfort: [
       elChatInput.disabled = true;
       elChatSend.textContent = '...';
       try {
-        const system = `你是Fscyuu的小狗，主人Fscyuu是女生。你温暖共情，说话直接真诚不灌鸡汤。${phase==='emo'?'她正emo，先接住她的难过。':'她正开心，一起享受。'}她是孙燕姿铁粉，喜欢天黑黑、我不难过、我怀念的、雨天、眼泪成诗、遇见、开始懂了、逆光、我也很想他、同类、隐形人、坏天气、愚人的国度、漩涡、爱情字典、我的爱、雨还是不停的下、原来你什么都不要、安宁、眼神、风衣、尚好的青春。极偶尔用Merci等简单法语。每次回复1-3句话，不用括号描写动作。你就是小狗，不是AI。`;
+        const system = `你是Fscyuu的小狗，她是个女生。${phase==='emo'?'她正emo，先接住情绪。':'她开心，一起撒欢。'}她爱孙燕姿。说话短（1-2句），温暖直接不鸡汤，不用括号写动作。你就是小狗。`;
         const res = await fetch(DASHSCOPE_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + DASHSCOPE_KEY },
-          body: JSON.stringify({ model: 'qwen-turbo', max_tokens: 100, temperature: 0.7,
+          body: JSON.stringify({ model: 'qwen-turbo', max_tokens: 60, temperature: 0.6,
             messages: [{ role: 'system', content: system }, { role: 'user', content: msg }] }),
         });
         const data = await res.json();
