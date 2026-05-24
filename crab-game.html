@@ -1512,7 +1512,7 @@ comfort: [
   const ZHIPU_URL = 'https://open.bigmodel.cn/api/paas/v4/chat/completions';
   let aiAvailable = true;
   const elBone = document.getElementById('boneIndicator');
-  let chatMemory = [];
+  let aiMemory = [];
 
   async function sendChat() {
     const msg = elChatInput.value.trim();
@@ -1524,7 +1524,7 @@ comfort: [
       elChatSend.textContent = '...';
       try {
         const system = `你是用户Fscyuu的小狗，你的名字也叫Fscyuu。${phase==='emo'?'她正emo，先接住情绪。':'她开心，一起撒欢。'}她爱听孙燕姿的歌，她不主动提时你别主动提，伤感时别提歌先陪她。说话短（1-2句），温暖拟人直接不鸡汤。`;
-        const messages = [{ role: 'system', content: system }, ...chatMemory, { role: 'user', content: msg }];
+        const messages = [{ role: 'system', content: system }, ...aiMemory, { role: 'user', content: msg }];
         const res = await fetch(ZHIPU_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + ZHIPU_KEY },
@@ -1533,8 +1533,8 @@ comfort: [
         const data = await res.json();
         const reply = data.error ? null : data.choices?.[0]?.message?.content;
         if (reply) {
-          chatMemory.push({ role: 'user', content: msg }, { role: 'assistant', content: reply });
-          if (chatMemory.length > 6) chatMemory = chatMemory.slice(-6);
+          aiMemory.push({ role: 'user', content: msg }, { role: 'assistant', content: reply });
+          if (aiMemory.length > 6) aiMemory = aiMemory.slice(-6);
           showDialog(reply);
           elBone.classList.add('show');
           // 轻量情绪检测 → 数值变化
