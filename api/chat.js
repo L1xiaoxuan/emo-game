@@ -6,21 +6,21 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(204).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const API_KEY = process.env.DASHSCOPE_API_KEY;
+  const API_KEY = process.env.ZHIPU_API_KEY;
   if (!API_KEY) return res.status(500).json({ error: 'API Key not configured' });
 
   try {
     const { messages, system } = req.body;
-    const aiRes = await fetch('https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions', {
+    const aiRes = await fetch('https://open.bigmodel.cn/api/paas/v4/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer ' + API_KEY,
       },
       body: JSON.stringify({
-        model: 'qwen-plus',
-        max_tokens: 200,
-        temperature: 0.9,
+        model: 'glm-4-flash',
+        max_tokens: 60,
+        temperature: 0.6,
         messages: [{ role: 'system', content: system }, ...messages],
       }),
     });

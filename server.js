@@ -4,8 +4,8 @@ const fs = require('fs');
 const path = require('path');
 
 const PORT = process.env.PORT || 3000;
-const API_KEY = process.env.DASHSCOPE_API_KEY;
-const BASE_URL = 'https://dashscope.aliyuncs.com/compatible-mode/v1';
+const API_KEY = process.env.ZHIPU_API_KEY;
+const BASE_URL = 'https://open.bigmodel.cn/api/paas/v4';
 
 const MIME = {
   '.html': 'text/html; charset=utf-8',
@@ -25,7 +25,7 @@ const server = http.createServer(async (req, res) => {
     return res.end();
   }
 
-  // API 代理 → 百炼 Qwen
+  // API 代理 → 智谱 GLM-4
   if (req.url === '/api/chat' && req.method === 'POST') {
     if (!API_KEY) {
       res.writeHead(500, { 'Content-Type': 'application/json' });
@@ -37,7 +37,7 @@ const server = http.createServer(async (req, res) => {
     req.on('end', async () => {
       try {
         const { messages, system } = JSON.parse(body);
-        console.log('[Qwen] 收到:', messages[0]?.content?.substring(0, 40));
+        console.log('[GLM] 收到:', messages[0]?.content?.substring(0, 40));
 
         const aiRes = await fetch(BASE_URL + '/chat/completions', {
           method: 'POST',
@@ -46,9 +46,9 @@ const server = http.createServer(async (req, res) => {
             'Authorization': 'Bearer ' + API_KEY,
           },
           body: JSON.stringify({
-            model: 'qwen-plus',
-            max_tokens: 200,
-            temperature: 0.9,
+            model: 'glm-4-flash',
+            max_tokens: 60,
+            temperature: 0.6,
             messages: [
               { role: 'system', content: system },
               ...messages,
@@ -57,7 +57,7 @@ const server = http.createServer(async (req, res) => {
         });
 
         const data = await aiRes.json();
-        console.log('[Qwen] 状态:', aiRes.status,
+        console.log('[GLM] 状态:', aiRes.status,
           data.error ? 'ERR:' + data.error.message : 'OK');
 
         if (data.error) {
@@ -68,7 +68,7 @@ const server = http.createServer(async (req, res) => {
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ reply }));
       } catch (e) {
-        console.log('[Qwen] 异常:', e.message);
+        console.log('[GLM] 异常:', e.message);
         res.writeHead(500, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ error: e.message }));
       }
@@ -93,5 +93,5 @@ const server = http.createServer(async (req, res) => {
 
 server.listen(PORT, () => {
   console.log(`🦀 游戏服务已启动: http://localhost:${PORT}`);
-  console.log(API_KEY ? '✅ 百炼 Key 已配置，AI 聊天可用' : '⚠️  未配置 API Key');
+  console.log(API_KEY ? '✅ 智谱 Key 已配置，AI 聊天可用' : '⚠️  未配置 API Key');
 });
