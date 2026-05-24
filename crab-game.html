@@ -793,6 +793,10 @@
       elDialog.style.opacity = '1';
     }, 120);
   }
+  function showDialogStream(text) {
+    elDialog.textContent = text;
+    elDialog.style.opacity = '1';
+  }
 
   // ── 角色动画 ──
   function charAnim(cls) {
@@ -1528,14 +1532,31 @@ comfort: [
         const res = await fetch(ZHIPU_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + ZHIPU_KEY },
-          body: JSON.stringify({ model: 'glm-4-flash', max_tokens: 40, temperature: 0.6, messages }),
+          body: JSON.stringify({ model: 'glm-4-flash', max_tokens: 25, temperature: 0.6, messages, stream: true }),
         });
-        const data = await res.json();
-        const reply = data.error ? null : data.choices?.[0]?.message?.content;
-        if (reply) {
-          aiMemory.push({ role: 'user', content: msg }, { role: 'assistant', content: reply });
-          if (aiMemory.length > 6) aiMemory = aiMemory.slice(-6);
-          showDialog(reply);
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let fullReply = '';
+        showDialogStream('');
+        elBone.classList.add('show');
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          const chunk = decoder.decode(value, { stream: true });
+          const lines = chunk.split('\n');
+          for (const line of lines) {
+            if (line.startsWith('data: ') && line !== 'data: [DONE]') {
+              try {
+                fullReply += JSON.parse(line.slice(6)).choices?.[0]?.delta?.content || '';
+                showDialogStream(fullReply);
+              } catch {}
+            }
+          }
+        }
+        if (fullReply) {
+          aiMemory.push({ role: 'user', content: msg }, { role: 'assistant', content: fullReply });
+          if (aiMemory.length > 4) aiMemory = aiMemory.slice(-4);
+          showDialog(fullReply);
           elBone.classList.add('show');
           // 轻量情绪检测 → 数值变化
           const negWords = /难过|伤心|emo|不开心|好累|好烦|好想|讨厌|痛苦|焦虑|害怕|崩溃|孤独|后悔|想哭|失眠|压抑/;
