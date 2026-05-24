@@ -1521,12 +1521,24 @@ comfort: [
       elChatSend.textContent = '...';
       try {
         const system = `你是Fscyuu的小狗，她是个女生。${phase==='emo'?'她正emo，先接住情绪。':'她开心，一起撒欢。'}她知道孙燕姿的很多歌。但她不主动提时你也别主动提，尤其伤感时——别提歌，先陪她。说话短（1-2句），温暖直接不鸡汤，不用括号写动作。你就是小狗。`;
-        const res = await fetch('https://emo-game-ten.vercel.app/api/chat', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ system, messages: [{ role: 'user', content: msg }] }),
-        });
-        const data = await res.json();
+        const ctrl = new AbortController();
+        const timer = setTimeout(() => ctrl.abort(), 8000);
+        let data;
+        try {
+          const res = await fetch('https://emo-game-ten.vercel.app/api/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ system, messages: [{ role: 'user', content: msg }] }),
+            signal: ctrl.signal,
+          });
+          clearTimeout(timer);
+          data = await res.json();
+        } catch {
+          clearTimeout(timer);
+          aiAvailable = false;
+          elBone.classList.remove('show');
+          data = { reply: null };
+        }
         const reply = data.error ? null : data.reply;
         if (reply) {
           showDialog(reply);
