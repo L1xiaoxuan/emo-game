@@ -1526,7 +1526,7 @@ comfort: [
         const res = await fetch(ZHIPU_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + ZHIPU_KEY },
-          body: JSON.stringify({ model: 'glm-4-flash', max_tokens: 60, temperature: 0.6,
+          body: JSON.stringify({ model: 'glm-4-flash', max_tokens: 40, temperature: 0.6,
             messages: [{ role: 'system', content: system }, { role: 'user', content: msg }] }),
         });
         const data = await res.json();
