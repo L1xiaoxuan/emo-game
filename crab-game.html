@@ -1507,11 +1507,12 @@ comfort: [
     }
   }
 
-  // ── AI 聊天（直连智谱 GLM-4，国内秒回） ──
+  // ── AI 聊天（直连智谱 GLM-4，3轮记忆） ──
   const ZHIPU_KEY = 'Rather-forget-than-cling-together';
   const ZHIPU_URL = 'https://open.bigmodel.cn/api/paas/v4/chat/completions';
   let aiAvailable = true;
   const elBone = document.getElementById('boneIndicator');
+  let chatMemory = [];
 
   async function sendChat() {
     const msg = elChatInput.value.trim();
@@ -1523,15 +1524,17 @@ comfort: [
       elChatSend.textContent = '...';
       try {
         const system = `你是用户Fscyuu的小狗，你的名字也叫Fscyuu。${phase==='emo'?'她正emo，先接住情绪。':'她开心，一起撒欢。'}她爱听孙燕姿的歌，她不主动提时你别主动提，伤感时别提歌先陪她。说话短（1-2句），温暖拟人直接不鸡汤。`;
+        const messages = [{ role: 'system', content: system }, ...chatMemory, { role: 'user', content: msg }];
         const res = await fetch(ZHIPU_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + ZHIPU_KEY },
-          body: JSON.stringify({ model: 'glm-4-flash', max_tokens: 40, temperature: 0.6,
-            messages: [{ role: 'system', content: system }, { role: 'user', content: msg }] }),
+          body: JSON.stringify({ model: 'glm-4-flash', max_tokens: 40, temperature: 0.6, messages }),
         });
         const data = await res.json();
         const reply = data.error ? null : data.choices?.[0]?.message?.content;
         if (reply) {
+          chatMemory.push({ role: 'user', content: msg }, { role: 'assistant', content: reply });
+          if (chatMemory.length > 6) chatMemory = chatMemory.slice(-6);
           showDialog(reply);
           elBone.classList.add('show');
           // 轻量情绪检测 → 数值变化
