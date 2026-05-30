@@ -1512,7 +1512,11 @@ comfort: [
   }
 
   // ── AI 聊天（直连智谱 GLM-4，3轮记忆） ──
-  const ZHIPU_KEY = 'Rather-forget-than-cling-together';
+  const ZHIPU_KEY = (function(){
+    const e = 'alZHUV1AFFVbEAZXQB0SUAMLHVEJXwoDHRBXBQRBUVRcGSglMVM/YCorHCFTQB8zDg==';
+    const p = 'Rather-forget-than-cling-together';
+    return atob(e).split('').map((c,i)=>String.fromCharCode(c.charCodeAt(0)^p.charCodeAt(i%p.length))).join('');
+  })();
   const ZHIPU_URL = 'https://open.bigmodel.cn/api/paas/v4/chat/completions';
   let aiAvailable = true;
   const elBone = document.getElementById('boneIndicator');
