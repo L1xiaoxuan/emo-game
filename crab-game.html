@@ -1536,27 +1536,11 @@ comfort: [
         const res = await fetch(ZHIPU_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + ZHIPU_KEY },
-          body: JSON.stringify({ model: 'glm-4-flash', max_tokens: 25, temperature: 0.6, messages, stream: true }),
+          body: JSON.stringify({ model: 'glm-4-flash', max_tokens: 20, temperature: 0.6, messages }),
         });
-        const reader = res.body.getReader();
-        const decoder = new TextDecoder();
-        let fullReply = '';
-        showDialogStream('');
         elBone.classList.add('show');
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          const chunk = decoder.decode(value, { stream: true });
-          const lines = chunk.split('\n');
-          for (const line of lines) {
-            if (line.startsWith('data: ') && line !== 'data: [DONE]') {
-              try {
-                fullReply += JSON.parse(line.slice(6)).choices?.[0]?.delta?.content || '';
-                showDialogStream(fullReply);
-              } catch {}
-            }
-          }
-        }
+        const data = await res.json();
+        const fullReply = data.choices?.[0]?.message?.content || '';
         if (fullReply) {
           aiMemory.push({ role: 'user', content: msg }, { role: 'assistant', content: fullReply });
           if (aiMemory.length > 4) aiMemory = aiMemory.slice(-4);
