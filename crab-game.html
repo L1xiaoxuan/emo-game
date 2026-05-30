@@ -1514,6 +1514,7 @@ comfort: [
   // ── AI 聊天 ──
   const ZHIPU_KEY = '873982934ba240f8be02e6dd0d8ba591.KIQY6MMLDnF642Gf';
   const ZHIPU_URL = 'https://open.bigmodel.cn/api/paas/v4/chat/completions';
+  const CF_URL = 'https://blue-bonus-e74d.lixiaoxuan54088.workers.dev';
   let aiAvailable = true;
   const elBone = document.getElementById('boneIndicator');
   let aiMemory = [];
@@ -1526,8 +1527,8 @@ comfort: [
     if (aiAvailable) {
       elChatInput.disabled = true;
       elChatSend.textContent = '...';
+      const system = `你是用户Fscyuu的小狗，你的名字也叫Fscyuu。${phase==='emo'?'她正emo，先接住情绪。':'她开心，一起撒欢。'}她爱听孙燕姿的歌，她不主动提时你别主动提，伤感时别提歌先陪她。说话短（1-2句），温暖拟人直接不鸡汤。`;
       try {
-        const system = `你是用户Fscyuu的小狗，你的名字也叫Fscyuu。${phase==='emo'?'她正emo，先接住情绪。':'她开心，一起撒欢。'}她爱听孙燕姿的歌，她不主动提时你别主动提，伤感时别提歌先陪她。说话短（1-2句），温暖拟人直接不鸡汤。`;
         const messages = [{ role: 'system', content: system }, ...aiMemory, { role: 'user', content: msg }];
         elBone.classList.add('show');
         const res = await fetch(ZHIPU_URL, {
@@ -1547,10 +1548,7 @@ comfort: [
           const lines = chunk.split('\n');
           for (const line of lines) {
             if (line.startsWith('data: ') && line !== 'data: [DONE]') {
-              try {
-                fullReply += JSON.parse(line.slice(6)).choices?.[0]?.delta?.content || '';
-                showDialogStream(fullReply);
-              } catch (e) {}
+              try { fullReply += JSON.parse(line.slice(6)).choices?.[0]?.delta?.content || ''; showDialogStream(fullReply); } catch (e) {}
             }
           }
         }
@@ -1558,41 +1556,17 @@ comfort: [
           aiMemory.push({ role: 'user', content: msg }, { role: 'assistant', content: fullReply });
           if (aiMemory.length > 4) aiMemory = aiMemory.slice(-4);
           showDialog(fullReply);
-          aiMemory.push({ role: 'user', content: msg }, { role: 'assistant', content: fullReply });
-          if (aiMemory.length > 4) aiMemory = aiMemory.slice(-4);
-          showDialog(fullReply);
           elBone.classList.add('show');
-          // 轻量情绪检测 → 数值变化
-          const negWords = /难过|伤心|emo|不开心|好累|好烦|好想|讨厌|痛苦|焦虑|害怕|崩溃|孤独|后悔|想哭|失眠|压抑/;
-          const posWords = /开心|快乐|哈哈|嘻嘻|喜欢|爱你|谢谢|好棒|加油|温暖|感动/;
-          const isNeg = negWords.test(msg), isPos = posWords.test(msg);
-          if (isNeg && !isPos) {
-            if (phase === 'emo') { changeValue(+5); sparkle('💔'); if (value >= 96) tearRain(); }
-            else { changeValue(-5); sparkle('😟'); }
-          } else if (isPos && !isNeg) {
-            if (phase === 'emo') { changeValue(-3); sparkle('💬'); }
-            else { changeValue(+3); sparkle('💬'); }
-          } else {
-            sparkle('💬');
-          }
+          sparkle('💬');
         }
-      } catch {
+      } catch (e) {
         // 直连失败 → Worker兜底
         try {
-          const system = '你是用户Fscyuu的小狗，你的名字也叫Fscyuu。她爱听孙燕姿的歌，说话短（1-2句），温暖拟人。';
-          const res = await fetch('https://blue-bonus-e74d.lixiaoxuan54088.workers.dev', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ messages: [{ role: 'user', content: msg }], system }),
-          });
-          const data = await res.json();
-          const fullReply = data.reply || '';
-          if (fullReply) { showDialog(fullReply); elBone.classList.add('show'); }
-          elChatInput.disabled = false;
-          elChatSend.textContent = '发送';
-          elChatInput.focus();
-          return;
-        } catch (e) {}
+          const r = await fetch(CF_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ messages: [...aiMemory, { role: 'user', content: msg }], system }) });
+          const d = await r.json();
+          if (d.reply) { showDialog(d.reply); elBone.classList.add('show'); sparkle('💬'); }
+          elChatInput.disabled = false; elChatSend.textContent = '发送'; elChatInput.focus(); return;
+        } catch (e2) {}
         aiAvailable = false; elBone.classList.remove('show');
       }
       elChatInput.disabled = false;
