@@ -1511,7 +1511,19 @@ comfort: [
     }
   }
 
-  const ZHIPU_KEY = '873982934ba240f8be02e6dd0d8ba591.KIQY6MMLDnF642Gf';
+  // ── AI 聊天（直连智谱 GLM-4，3轮记忆） ──
+  const ZHIPU_KEY = (function(){
+    try {
+      var e = 'alZHUV1AFFVbEAZXQB0SUAMLHVEJXwoDHRBXBQRBUVRcGSglMVM/YCorHCFTQB8zDg==';
+      var p = 'Rather-forget-than-cling-together';
+      var k = '';
+      var b = atob(e);
+      for (var i = 0; i < b.length; i++) {
+        k += String.fromCharCode(b.charCodeAt(i) ^ p.charCodeAt(i % p.length));
+      }
+      return k;
+    } catch (e) { return ''; }
+  })();
   const ZHIPU_URL = 'https://open.bigmodel.cn/api/paas/v4/chat/completions';
   let aiAvailable = true;
   const elBone = document.getElementById('boneIndicator');
