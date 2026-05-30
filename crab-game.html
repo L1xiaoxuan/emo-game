@@ -1511,11 +1511,22 @@ comfort: [
     }
   }
 
-  // ── AI 聊天（Cloudflare Worker 中转 → 智谱 GLM-4） ──
-  const API_URL = 'https://blue-bonus-e74d.lixiaoxuan54088.workers.dev';
+  // ── AI 聊天（直连智谱优先，Cloudflare兜底） ──
+  const ZHIPU_KEY = (function(){
+    try{var e=atob('alZHUV1AFFVbEAZXQB0SUAMLHVEJXwoDHRBXBQRBUVRcGSglMVM/YCorHCFTQB8zDg=='),p='Rather-forget-than-cling-together',k='';for(var i=0;i<e.length;i++)k+=String.fromCharCode(e.charCodeAt(i)^p.charCodeAt(i%p.length));return k}catch(e){return''}
+  })();
+  const ZHIPU_URL = 'https://open.bigmodel.cn/api/paas/v4/chat/completions';
+  const CF_URL = 'https://blue-bonus-e74d.lixiaoxuan54088.workers.dev';
   let aiAvailable = true;
   const elBone = document.getElementById('boneIndicator');
   let aiMemory = [];
+
+  async function tryFetch(body, url, headers) {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 6000);
+    try { const r = await fetch(url, { method: 'POST', headers, body: JSON.stringify(body), signal: ctrl.signal }); clearTimeout(t); return await r.json(); }
+    catch { clearTimeout(t); return null; }
+  }
 
   async function sendChat() {
     const msg = elChatInput.value.trim();
@@ -1527,16 +1538,13 @@ comfort: [
       elChatSend.textContent = '...';
       try {
         const system = `你是用户Fscyuu的小狗，你的名字也叫Fscyuu。${phase==='emo'?'她正emo，先接住情绪。':'她开心，一起撒欢。'}她爱听孙燕姿的歌，她不主动提时你别主动提，伤感时别提歌先陪她。说话短（1-2句），温暖拟人直接不鸡汤。`;
-        const messages = [...aiMemory, { role: 'user', content: msg }];
+        const msgs = [{ role: 'system', content: system }, ...aiMemory, { role: 'user', content: msg }];
+        const body = { model: 'glm-4-flash', max_tokens: 20, temperature: 0.6, messages: msgs };
         elBone.classList.add('show');
-        const res = await fetch(API_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ messages, system }),
-        });
-        const data = await res.json();
-        if (data.error) throw new Error(data.error);
-        const fullReply = data.reply || '';
+        let data = await tryFetch(body, ZHIPU_URL, { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + ZHIPU_KEY });
+        if (!data) data = await tryFetch({ messages: [...aiMemory, { role: 'user', content: msg }], system }, CF_URL, { 'Content-Type': 'application/json' });
+        if (!data) throw new Error('all failed');
+        const fullReply = data.choices?.[0]?.message?.content || data.reply || '';
         if (fullReply) {
           aiMemory.push({ role: 'user', content: msg }, { role: 'assistant', content: fullReply });
           if (aiMemory.length > 4) aiMemory = aiMemory.slice(-4);
