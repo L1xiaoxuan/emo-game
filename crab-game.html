@@ -1576,7 +1576,25 @@ comfort: [
             sparkle('💬');
           }
         }
-      } catch { aiAvailable = false; elBone.classList.remove('show'); }
+      } catch {
+        // 直连失败 → Worker兜底
+        try {
+          const system = '你是用户Fscyuu的小狗，你的名字也叫Fscyuu。她爱听孙燕姿的歌，说话短（1-2句），温暖拟人。';
+          const res = await fetch('https://blue-bonus-e74d.lixiaoxuan54088.workers.dev', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ messages: [{ role: 'user', content: msg }], system }),
+          });
+          const data = await res.json();
+          const fullReply = data.reply || '';
+          if (fullReply) { showDialog(fullReply); elBone.classList.add('show'); }
+          elChatInput.disabled = false;
+          elChatSend.textContent = '发送';
+          elChatInput.focus();
+          return;
+        } catch (e) {}
+        aiAvailable = false; elBone.classList.remove('show');
+      }
       elChatInput.disabled = false;
       elChatSend.textContent = '发送';
       elChatInput.focus();
