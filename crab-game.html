@@ -1511,22 +1511,12 @@ comfort: [
     }
   }
 
-  // ── AI 聊天（直连智谱优先，Cloudflare兜底） ──
-  const ZHIPU_KEY = (function(){
-    try{var e=atob('alZHUV1AFFVbEAZXQB0SUAMLHVEJXwoDHRBXBQRBUVRcGSglMVM/YCorHCFTQB8zDg=='),p='Rather-forget-than-cling-together',k='';for(var i=0;i<e.length;i++)k+=String.fromCharCode(e.charCodeAt(i)^p.charCodeAt(i%p.length));return k}catch(e){return''}
-  })();
+  // ── AI 聊天 ──
+  const ZHIPU_KEY = '873982934ba240f8be02e6dd0d8ba591.KIQY6MMLDnF642Gf';
   const ZHIPU_URL = 'https://open.bigmodel.cn/api/paas/v4/chat/completions';
-  const CF_URL = 'https://blue-bonus-e74d.lixiaoxuan54088.workers.dev';
   let aiAvailable = true;
   const elBone = document.getElementById('boneIndicator');
   let aiMemory = [];
-
-  async function tryFetch(body, url, headers) {
-    const ctrl = new AbortController();
-    const t = setTimeout(() => ctrl.abort(), 6000);
-    try { const r = await fetch(url, { method: 'POST', headers, body: JSON.stringify(body), signal: ctrl.signal }); clearTimeout(t); return await r.json(); }
-    catch { clearTimeout(t); return null; }
-  }
 
   async function sendChat() {
     const msg = elChatInput.value.trim();
@@ -1538,14 +1528,36 @@ comfort: [
       elChatSend.textContent = '...';
       try {
         const system = `你是用户Fscyuu的小狗，你的名字也叫Fscyuu。${phase==='emo'?'她正emo，先接住情绪。':'她开心，一起撒欢。'}她爱听孙燕姿的歌，她不主动提时你别主动提，伤感时别提歌先陪她。说话短（1-2句），温暖拟人直接不鸡汤。`;
-        const msgs = [{ role: 'system', content: system }, ...aiMemory, { role: 'user', content: msg }];
-        const body = { model: 'glm-4-flash', max_tokens: 20, temperature: 0.6, messages: msgs };
+        const messages = [{ role: 'system', content: system }, ...aiMemory, { role: 'user', content: msg }];
         elBone.classList.add('show');
-        let data = await tryFetch(body, ZHIPU_URL, { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + ZHIPU_KEY });
-        if (!data) data = await tryFetch({ messages: [...aiMemory, { role: 'user', content: msg }], system }, CF_URL, { 'Content-Type': 'application/json' });
-        if (!data) throw new Error('all failed');
-        const fullReply = data.choices?.[0]?.message?.content || data.reply || '';
+        const res = await fetch(ZHIPU_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + ZHIPU_KEY },
+          body: JSON.stringify({ model: 'glm-4-flash', max_tokens: 25, temperature: 0.6, messages, stream: true }),
+        });
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let fullReply = '';
+        showDialogStream('');
+        elBone.classList.add('show');
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          const chunk = decoder.decode(value, { stream: true });
+          const lines = chunk.split('\n');
+          for (const line of lines) {
+            if (line.startsWith('data: ') && line !== 'data: [DONE]') {
+              try {
+                fullReply += JSON.parse(line.slice(6)).choices?.[0]?.delta?.content || '';
+                showDialogStream(fullReply);
+              } catch (e) {}
+            }
+          }
+        }
         if (fullReply) {
+          aiMemory.push({ role: 'user', content: msg }, { role: 'assistant', content: fullReply });
+          if (aiMemory.length > 4) aiMemory = aiMemory.slice(-4);
+          showDialog(fullReply);
           aiMemory.push({ role: 'user', content: msg }, { role: 'assistant', content: fullReply });
           if (aiMemory.length > 4) aiMemory = aiMemory.slice(-4);
           showDialog(fullReply);
