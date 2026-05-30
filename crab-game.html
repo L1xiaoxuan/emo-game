@@ -1539,7 +1539,6 @@ comfort: [
         let data;
         try {
           if (isLocal) {
-            // 本地开发 → 走服务器代理（最稳）
             const res = await fetch('/api/chat', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
@@ -1547,22 +1546,37 @@ comfort: [
             });
             data = await res.json();
           } else {
-            // 线上 → 直连智谱
             const res = await fetch(ZHIPU_URL, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + ZHIPU_KEY },
-              body: JSON.stringify({ model: 'glm-4-flash', max_tokens: 20, temperature: 0.6, messages }),
+              body: JSON.stringify({ model: 'glm-4-flash', max_tokens: 25, temperature: 0.6, messages, stream: true }),
             });
-            data = await res.json();
+            const reader = res.body.getReader();
+            const decoder = new TextDecoder();
+            let full = '';
+            elBone.classList.add('show');
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
+              const chunk = decoder.decode(value, { stream: true });
+              const lines = chunk.split('\n');
+              for (const line of lines) {
+                if (line.startsWith('data: ') && line !== 'data: [DONE]') {
+                  try { full += JSON.parse(line.slice(6)).choices?.[0]?.delta?.content || ''; } catch {}
+                }
+              }
+            }
+            data = { reply: full };
           }
         } catch {
-          // 失败 → Vercel代理兜底
-          const res = await fetch('https://emo-game-ten.vercel.app/api/chat', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ messages, system }),
-          });
-          data = await res.json();
+          try {
+            const res = await fetch('https://emo-game-ten.vercel.app/api/chat', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ messages, system }),
+            });
+            data = await res.json();
+          } catch { throw new Error('all failed'); }
         }
         elBone.classList.add('show');
         const fullReply = data.choices?.[0]?.message?.content || data.reply || '';
