@@ -1,0 +1,1605 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="format-detection" content="telephone=no">
+<title>Fscyuu的emo小游戏</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    width: 100%; height: 100%;
+    overflow: hidden;
+    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", "Noto Sans SC", sans-serif;
+    background: #1a1a2e;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+    touch-action: manipulation;
+  }
+
+  .game {
+    width: 100vw; height: 100vh;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    background: linear-gradient(180deg, #16213e 0%, #0f3460 50%, #1a1a2e 100%);
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  }
+
+  .card {
+    width: min(92vw, 420px);
+    max-height: 96vh;
+    background: #1e1e30;
+    border-radius: 20px;
+    border: 2px solid #2a2a4a;
+    padding: clamp(10px, 3vw, 20px);
+    display: flex; flex-direction: column; align-items: center;
+    gap: clamp(6px, 1.5vh, 12px);
+    box-shadow: 0 0 60px rgba(100, 200, 255, 0.08);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* 顶部横幅 */
+  .banner {
+    width: 100%;
+    background: linear-gradient(135deg, #c0392b, #e74c3c);
+    color: #fff;
+    text-align: center;
+    padding: clamp(8px, 2vw, 12px);
+    border-radius: 10px;
+    font-size: clamp(15px, 3.8vw, 18px);
+    font-weight: 700;
+    letter-spacing: 1px;
+  }
+
+  /* 副标题 */
+  .subtitle {
+    color: #7fdbca;
+    font-size: clamp(11px, 2.5vw, 13px);
+    opacity: 0.6;
+    letter-spacing: 1px;
+  }
+
+  /* 角色图片区域 */
+  .char-area {
+    position: relative;
+    width: clamp(120px, 36vw, 170px);
+    height: clamp(120px, 36vw, 170px);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .char-area img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+    display: block;
+    transition: transform 0.15s ease;
+    pointer-events: none;
+    border: 3px solid rgba(127, 219, 202, 0.3);
+    box-shadow: 0 0 30px rgba(127, 219, 202, 0.15);
+  }
+
+  .char-area.poked img   { transform: scale(1.08) rotate(-3deg); }
+  .char-area.petted img  { transform: scale(1.05) translateY(-3px); }
+  .char-area.fed img     { transform: scale(1.08); }
+  .char-area.called img  { transform: scale(1.08) rotate(3deg); }
+  .char-area.stared img  { transform: scale(1.03); }
+
+  /* 气泡闪光 */
+  .sparkle {
+    position: absolute;
+    pointer-events: none;
+    font-size: clamp(14px, 4vw, 20px);
+    animation: sparkleUp 0.8s ease-out forwards;
+  }
+  @keyframes sparkleUp {
+    0% { opacity: 1; transform: translateY(0) scale(1); }
+    100% { opacity: 0; transform: translateY(-40px) scale(0.3); }
+  }
+  @keyframes tearFall {
+    0% { opacity: 1; transform: translateY(0); }
+    100% { opacity: 0; transform: translateY(140px); }
+  }
+
+  /* 状态标签 */
+  .phase-tag {
+    font-size: clamp(11px, 2.5vw, 13px);
+    padding: 3px 12px;
+    border-radius: 20px;
+    font-weight: 600;
+    transition: all 0.4s;
+  }
+  .phase-tag.emo {
+    background: rgba(100, 149, 237, 0.2);
+    color: #6495ED;
+    border: 1px solid rgba(100, 149, 237, 0.3);
+  }
+  .phase-tag.happy {
+    background: rgba(255, 182, 193, 0.2);
+    color: #FFB6C1;
+    border: 1px solid rgba(255, 182, 193, 0.3);
+  }
+
+  /* 进度条 */
+  .progress-wrap {
+    width: 100%;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .progress-label {
+    color: #aaa;
+    font-size: clamp(11px, 2.5vw, 13px);
+    white-space: nowrap;
+    min-width: 42px;
+    transition: color 0.4s;
+  }
+  .progress-bar {
+    flex: 1; height: clamp(10px, 2vh, 14px);
+    background: #2a2a4a;
+    border-radius: 7px;
+    overflow: hidden;
+    border: 1px solid #3a3a5a;
+  }
+  .progress-fill {
+    height: 100%; width: 100%;
+    border-radius: 7px;
+    transition: width 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.4s;
+  }
+  .progress-fill.emo-bar {
+    background: linear-gradient(90deg, #4169E1, #6495ED);
+  }
+  .progress-fill.happy-bar {
+    background: linear-gradient(90deg, #FF69B4, #FFB6C1);
+  }
+  .progress-val {
+    font-size: clamp(11px, 2.5vw, 13px);
+    font-weight: 600;
+    min-width: 36px; text-align: right;
+    transition: color 0.4s;
+  }
+  .progress-val.emo-val { color: #6495ED; }
+  .progress-val.happy-val { color: #FFB6C1; }
+
+  /* 对话框 */
+  .dialog {
+    width: 100%;
+    background: #2a2a3e;
+    border-radius: 14px;
+    padding: clamp(10px, 2.5vw, 14px) clamp(12px, 3vw, 18px);
+    min-height: clamp(44px, 10vh, 56px);
+    display: flex; align-items: center;
+    position: relative;
+    border: 1px solid #3a3a5a;
+  }
+  .dialog::before {
+    content: ''; position: absolute; top: -8px; left: 30px;
+    width: 0; height: 0;
+    border-left: 8px solid transparent;
+    border-right: 8px solid transparent;
+    border-bottom: 8px solid #2a2a3e;
+  }
+  .dialog-text {
+    color: #e0e0e0;
+    font-size: clamp(13px, 3vw, 15px);
+    line-height: 1.5;
+    transition: opacity 0.2s;
+  }
+  .bone-indicator {
+    opacity: 0;
+    transition: opacity 0.5s;
+  }
+  .bone-indicator.show { opacity: 0.35; }
+
+  /* 按钮组 */
+  .btn-row {
+    width: 100%;
+    display: flex; gap: clamp(6px, 1.5vw, 10px);
+    flex-wrap: wrap; justify-content: center;
+  }
+  .btn {
+    flex: 1 1 auto;
+    min-width: clamp(52px, 14vw, 70px);
+    padding: clamp(8px, 2vw, 12px) clamp(4px, 1vw, 8px);
+    border-radius: 12px;
+    border: 2px solid #6495ED;
+    background: rgba(100, 149, 237, 0.08);
+    color: #6495ED;
+    font-size: clamp(12px, 2.8vw, 15px);
+    font-weight: 600;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+  .btn:active, .btn.active {
+    background: #6495ED;
+    color: #fff;
+    transform: scale(0.95);
+  }
+  /* 开心阶段按钮变粉色 */
+  .btn.happy-btn {
+    border-color: #FF69B4;
+    color: #FF69B4;
+    background: rgba(255, 105, 180, 0.08);
+  }
+  .btn.happy-btn:active, .btn.happy-btn.active {
+    background: #FF69B4;
+    color: #fff;
+  }
+
+  .btn-stare {
+    width: min(60%, 180px);
+    margin-top: 2px;
+  }
+
+  /* 聊天输入 */
+  .chat-row {
+    width: 100%;
+    display: flex; gap: 8px;
+    margin-top: 4px;
+  }
+  .chat-input {
+    flex: 1;
+    background: #2a2a3e;
+    border: 2px solid #3a3a5a;
+    border-radius: 12px;
+    padding: 10px 14px;
+    color: #e0e0e0;
+    font-size: clamp(12px, 2.8vw, 14px);
+    outline: none;
+    transition: border-color 0.2s;
+    font-family: inherit;
+  }
+  .chat-input:focus { border-color: #7fdbca; }
+  .chat-input::placeholder { color: #555; }
+  .chat-send {
+    padding: 10px 16px;
+    border-radius: 12px;
+    border: 2px solid #7fdbca;
+    background: rgba(127, 219, 202, 0.1);
+    color: #7fdbca;
+    font-size: clamp(12px, 2.8vw, 14px);
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .chat-send:active { background: #7fdbca; color: #1a1a2e; }
+
+  /* 底部提示 */
+  .hint {
+    color: #555;
+    font-size: clamp(10px, 2vw, 12px);
+    letter-spacing: 1px;
+    opacity: 0.7;
+  }
+
+  /* 涟漪 */
+  .ripple {
+    position: absolute;
+    border-radius: 50%;
+    border: 2px solid rgba(127, 219, 202, 0.5);
+    animation: rippleOut 0.6s ease-out forwards;
+    pointer-events: none;
+  }
+  @keyframes rippleOut {
+    0% { width: 10px; height: 10px; opacity: 1; }
+    100% { width: 80px; height: 80px; opacity: 0; }
+  }
+
+  /* 阶段切换提示 */
+  .phase-switch-toast {
+    position: fixed;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%) scale(0);
+    background: rgba(0,0,0,0.85);
+    color: #FFB6C1;
+    padding: 16px 28px;
+    border-radius: 16px;
+    font-size: clamp(16px, 4vw, 20px);
+    font-weight: 700;
+    z-index: 100;
+    pointer-events: none;
+    animation: toastPop 2s ease forwards;
+    text-align: center;
+    border: 2px solid rgba(255, 182, 193, 0.4);
+  }
+  @keyframes toastPop {
+    0%   { transform: translate(-50%, -50%) scale(0); }
+    15%  { transform: translate(-50%, -50%) scale(1.1); }
+    25%  { transform: translate(-50%, -50%) scale(1); }
+    80%  { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+    100% { transform: translate(-50%, -50%) scale(0.8); opacity: 0; }
+  }
+</style>
+</head>
+<body>
+
+<div class="game">
+  <div class="card">
+
+    <!-- 横幅 -->
+    <div class="banner">Fscyuu的emo小游戏</div>
+
+    <!-- 副标题 -->
+    <div class="subtitle">FROST · CLAUDE CODE</div>
+
+    <!-- 角色图片 -->
+    <div class="char-area" id="charArea">
+      <img src="data:image/png;base64,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" alt="小狗狗" id="charImg">
+    </div>
+
+    <!-- 阶段标签 -->
+    <div class="phase-tag emo" id="phaseTag">🌧️ emo中</div>
+
+    <!-- 进度条 -->
+    <div class="progress-wrap">
+      <span class="progress-label" id="progressLabel">emo值</span>
+      <div class="progress-bar">
+        <div class="progress-fill emo-bar" id="progressFill" style="width:80%"></div>
+      </div>
+      <span class="progress-val emo-val" id="progressVal">80</span>
+    </div>
+
+    <!-- 对话框 -->
+    <div class="dialog" id="dialogBox">
+      <span class="dialog-text" id="dialogText">今天好emo……陪陪我吧。</span>
+    </div>
+
+    <!-- 互动按钮 -->
+    <div class="btn-row">
+      <button class="btn" data-action="pet">摸摸头</button>
+      <button class="btn" data-action="poke">戳一戳</button>
+      <button class="btn" data-action="feed">喂零食</button>
+      <button class="btn" data-action="call">叫名字</button>
+    </div>
+    <button class="btn btn-stare" data-action="stare">贴贴</button>
+
+    <!-- 实时聊天 -->
+    <div class="chat-row">
+      <input class="chat-input" id="chatInput" placeholder="和小狗说句话..." maxlength="60" autocomplete="off">
+      <button class="chat-send" id="chatSend">发送</button>
+    </div>
+
+    <!-- 底部提示 -->
+    <div class="hint">TAP THE PUPPY TO INTERACT <span class="bone-indicator" id="boneIndicator">🦴</span></div>
+
+  </div>
+</div>
+
+<script>
+(function() {
+  // ── DOM 引用 ──
+  const elProgressFill = document.getElementById('progressFill');
+  const elProgressVal  = document.getElementById('progressVal');
+  const elProgressLbl  = document.getElementById('progressLabel');
+  const elDialog       = document.getElementById('dialogText');
+  const elCharArea     = document.getElementById('charArea');
+  const elPhaseTag     = document.getElementById('phaseTag');
+  const btns           = document.querySelectorAll('.btn');
+
+  // ── 状态 ──
+  let value    = 80;        // 当前数值 0-100
+  let phase    = 'emo';     // 'emo' | 'happy'
+
+  // ── 对话库 ──
+  const dialogs = {
+    emo: {
+      pet: {
+        deep: [
+          '别摸我……现在碰我会碎的。',
+          '你的手好暖……但暖不到心里去。抱歉。',
+          '摸吧。反正今天已经糟糕到不在乎多一个印记了。',
+          '你知道那种感觉吗——被摸着头，却想哭得更厉害。',
+          '呜呜……再摸下去要掉毛了……但我也不在乎了。',
+          'J\'y suis, j\'y reste',
+          '摸头杀在我这里是无效技能，但你可以继续试。'
+        ],
+        mid: [
+          '嗯…稍微舒服了一点点，就那么一点点。',
+          '你的手是今天唯一不让我emo的东西。',
+          '别停……继续摸。虽然我很难过，但你的手是今天的解药。',
+          '摸吧。也许再摸一会儿，我就能相信一切会好。',
+          '你的抚摸在说"没事的"——我不确定是不是真的，但我选择信。',
+          '别再emo啦，这个世界上还有人在意你……看，连我都知道这个道理。'
+        ],
+        light: [
+          '咦……你的手好像比刚才更暖了？',
+          '摸头的效果好像……在起作用？奇怪。',
+          '别跟别人说我开始喜欢被摸了。小狗也要面子的。',
+          '嘿，再摸一会儿——我感觉emo在撤退。',
+          '你的抚摸有一种奇怪的力量……好像乌云在散开。',
+          '也许……也许这个世界没那么糟。至少现在，你的手告诉我了。'
+        ]
+      },
+      poke: {
+        deep: [
+          '别戳了……每戳一下我的emo就深一层。',
+          '戳吧戳吧……反正我已经是一团揉皱的纸了，多一个褶子也没差。',
+          '你戳的不是小狗，是一颗正在下沉的心。',
+          '反弹无效。连反弹的力气都没了。',
+          '轻点戳……这是一只正在愈合的小狗。虽然愈合得很慢。'
+        ],
+        mid: [
+          '戳一下，emo值+1……哦不，是-1……我也搞不清了。',
+          '你戳到我的痒处了——不是痒痒肉的痒，是心里的痒。',
+          '再戳？好吧，反正比一个人emo好。',
+          '戳吧，你的手指至少让我感觉自己是存在的。',
+          '啊呜呜……你怎么忍心戳一只emo小狗？——算了你继续吧。',
+          '你还在听孙燕姿的歌emo吗……戳一下，帮你换首歌。'
+        ],
+        light: [
+          '咦？这次戳得我有点想笑了……怎么回事。',
+          '反弹！——等等，我居然有力气反弹了？',
+          '再戳一下试试？我觉得我要被你戳醒了。',
+          '戳戳戳……等等，为什么我开始觉得好玩了？',
+          '你的手指是不是装了开心病毒？戳一下传染一点。',
+          '再难过哭下去可不好看了……嘿，我居然在劝自己。'
+        ]
+      },
+      feed: {
+        deep: [
+          '没胃口……放在那儿吧。也许明天会有食欲。',
+          '谢谢，但食物填不满心里的洞。',
+          '这是……鸡肉干？……放那儿吧，我看着就好。',
+          '零食也不能填补我内心的空洞。但你的心意填了一点点。',
+          '吃饱了更想睡觉……也许睡着就不emo了。'
+        ],
+        mid: [
+          '好吧，看你这么执着，我咬一小口——嗯，还行。',
+          '这是……我最爱的鸡肉干？……好吧，吃一口。就一口。',
+          '吃东西的时候嘴巴没空emo——这是你给我设的陷阱吗？',
+          '告诉我你喜欢吃什么呀！下次我们一起emo一起吃。',
+          '食物是实在的，不像情绪那么飘。谢谢你给我实在的东西。'
+        ],
+        light: [
+          '这个味道……好像比刚才好了？是你换牌子了还是我变了？',
+          '再来一口！奇怪，emo的时候不是应该没胃口的吗。',
+          '吃着吃着居然有点开心了……你的零食有毒。',
+          '你的零食就是解药吧！下次多带点。',
+          '好吃的！谢谢……好吃的也许治不好emo，但能让你陪我更久。'
+        ]
+      },
+      call: {
+        deep: [
+          '别叫了……让我安静地沉一会儿。',
+          '叫我？算了，不想回应。反正回了也没什么不同。',
+          '我叫Fscyuu……不叫"那只狗"。虽然现在连名字都不想要了。',
+          '听到名字更想哭了……为什么被叫名字会触发泪腺。',
+          'Les émotions passent, même les plus lourdes.'
+        ],
+        mid: [
+          '嗯，我在。虽然回得很小声，但我在。',
+          '谁在叫我？……算了，反正你叫我，我就应一声。',
+          '叫吧，你的声音是我今天接收到的唯一信号。',
+          '叫我帅哥，可能有那么一点点用。或者叫别的也行。',
+          '再叫一次吧……你的声音是我今天唯一的旋律。'
+        ],
+        light: [
+          '到！——等等，我刚才是不是回答得太快了？',
+          '你叫我了！嘿，这次我居然想回应你。',
+          '叫我的名字！再叫一次！——哇我说出来了。',
+          '听到你叫我，尾巴好像要摇了……忍住，我可是emo小狗。',
+          '你的声音今天特别清楚。是我的耳朵变好了，还是乌云薄了？'
+        ]
+      },
+      stare: {
+        deep: [
+          '别看我……我现在很丑。眼睛是肿的。',
+          '对视比赛？我直接认输。反正我什么都输。',
+          '你的眼神好温柔……但我不配。至少现在不配。',
+          'Viens, je te fais un câlin.',
+          '别贴贴……眼泪会蹭到你身上的。而我不想弄脏你。'
+        ],
+        mid: [
+          '……透过你的眼睛，我看到了同样emo的灵魂。你好，同类。',
+          '对视的时候不要转开眼睛……让我看看，是谁愿意看着一只emo小狗。',
+          '你的目光是我今天唯一的光源。别移开。',
+          '你在看我，我在看你。这一刻好像emo没那么重要了。',
+          '眼神交流比语言诚实。我看见了你的关心——虽然我不太会表达。'
+        ],
+        light: [
+          '看什么看——再看我就……我就开心了。糟糕。',
+          '咦，你的眼睛今天格外亮。是我的错觉还是我真的在变好？',
+          '对视的时候心跳变快了……这不是emo的心跳。',
+          '你赢了对视比赛。奖励是：一只快要走出emo的小狗。',
+          '我居然在笑了。别跟别人说。'
+        ]
+      }
+    },
+    happy: {
+      pet: {
+        high: [
+          '汪汪汪！再摸再摸不要停！我的尾巴已经是直升机了！',
+          '你的手有魔法！每摸一下我就更开心一点！天哪我停不下来了！',
+          '摸头杀超级有效！开心值爆表！我要绕着地球跑三圈！',
+          '嘿嘿嘿！再摸！不要停！这辈子都别停！',
+          '你的手好温柔呀～转圈圈！全世界最棒的手！',
+          '嗷呜～舒服得尾巴都要摇断了！但断就断吧，值得！'
+        ],
+        mid: [
+          '汪汪！最喜欢被摸头了！再来再来！',
+          '你的手好温柔呀～转圈圈！',
+          '摸头杀有效！开心值暴涨！',
+          '去听一首开心的歌庆祝一下吧！被你摸过之后什么都好！',
+          '嘿嘿嘿！摸头的快乐是最简单也最真实的快乐！'
+        ],
+        low: [
+          '摸头！好舒服～不过别停，我刚开心起来。',
+          '你的手是我今天的幸运符。多摸几下，开心值需要巩固。',
+          '嘿嘿，被摸头的感觉真好。但你要持续供应哦！',
+          '转圈圈！——等等，我转得有点晕，但好开心！',
+          '开心了开心了！不过不许停，停了我就掉回去。'
+        ]
+      },
+      poke: {
+        high: [
+          '哈哈哈哈！戳到终极痒痒肉了！再来再来再来！',
+          '反弹反弹反弹！连环反弹！你被我戳中啦！',
+          '戳戳戳～好好玩！这辈子最好玩的游戏！',
+          '你戳我一下，我跳三下！每一下都是开心的弹跳！',
+          '戳戳戳！痒痒痒！哈哈哈哈哈！笑到肚子疼！',
+          '你的手指是快乐发射器！Biu Biu Biu！'
+        ],
+        mid: [
+          '哈哈哈！戳到痒痒肉了！',
+          '你戳我一下，我戳你一下，嘻嘻～',
+          '反弹反弹！你戳到自己啦！',
+          '再戳？我舔你手哦！舔到开心为止！'
+        ],
+        low: [
+          '戳吧戳吧——不过轻点，我还没完全从emo恢复呢。',
+          '嘿嘿，戳痒了！但小心把我戳回emo模式哦。',
+          '你戳得好玩！但我还在加固开心值，戳轻点～',
+          '戳戳戳～好玩！不过要是再戳三下我就进入超开心模式了！'
+        ]
+      },
+      feed: {
+        high: [
+          '哇！是零食！我爱你！！！比昨天更爱！',
+          '嗷呜一口！好吃好吃好吃！这是天堂的味道！',
+          '还有吗还有吗？我还能吃十个！不，一百个！',
+          '这是世界上最好吃的鸡肉干！每一口都是快乐炸弹！',
+          '吃饱了！现在我是全世界最开心的小狗！美食万岁！',
+          '这个味道——是幸福的终极配方！再来亿口！'
+        ],
+        mid: [
+          '哇！是零食！我爱你！！！',
+          '嗷呜一口！好吃好吃好吃！',
+          '还有吗还有吗？我还能吃十个！',
+          '这是世界上最好吃的鸡肉干！',
+          '你喂我的不是食物，是快乐。食物只是载体！'
+        ],
+        low: [
+          '零食！太好了，开心值刚涨起来需要补充能量！',
+          '好吃！这是稳定开心的秘密武器吗？',
+          '嗷呜！虽然还没完全high起来，但这口零食加速了进程！',
+          '吃好了！开心值正在稳步上升中……'
+        ]
+      },
+      call: {
+        high: [
+          '到到到！是你在叫我吗？我以光速赶来！',
+          '来啦来啦！跑着来的！尾巴已经先到了！',
+          '汪汪！Fscyuu在此！世界上最开心的小狗在此！',
+          '叫我的名字！再叫一次！每叫一次我绕你跑一圈！',
+          '听到名字我的尾巴就开始摇了！这次摇得比任何时候都快！',
+          '你的声音是我的加速器！叫一次，开心值飙升一档！'
+        ],
+        mid: [
+          '到！是你在叫我吗？',
+          '来啦来啦！跑着来的！',
+          '汪汪！Fscyuu在此！',
+          '叫我的名字！再叫一次！',
+          '听到名字我的尾巴就开始摇了！'
+        ],
+        low: [
+          '来啦来啦！虽然开心值还不稳，但我先到！',
+          '到！——等我再摇两下尾巴，就进入全速开心模式。',
+          '汪汪！你叫我，我就来。无论开心值多高。',
+          '再叫一次再叫一次！每叫一次我的开心就加固一层！'
+        ]
+      },
+      stare: {
+        high: [
+          '看我看我！我今天是不是超级无敌可爱！自己都觉得可爱！',
+          '你眼睛里有星星！我眼睛里有你！还有满世界的快乐！',
+          '对视的时候心跳好快……是超级开心的心跳！要跳出来了！',
+          '贴贴！贴贴！我要贴贴！贴到天荒地老！',
+          '看着你的眼睛，我觉得天花板是天空，我是会飞的小狗！',
+          '对视——你赢了！奖品是：一只开心小狗的终身无限拥抱券！'
+        ],
+        mid: [
+          '看我看我！我今天是不是超可爱？',
+          '你眼睛里有星星！我眼睛里有你！',
+          '输了的人要摸摸赢的人的头！',
+          '对视的时候心跳好快……是开心的心跳！',
+          '贴贴！贴贴！我要贴贴！'
+        ],
+        low: [
+          '看我看我！开心值虽然不高但我已经很可爱了！',
+          '对视——你在检查我是不是真的开心吗？是真的！看眼睛就知道。',
+          '贴贴吧！贴一会儿，我的开心值就稳了。',
+          '你眼睛里有光，那光在把我的开心值慢慢点亮。'
+        ]
+      }
+    }
+  };
+
+  const lastIdx = {
+    emo:   { pet: -1, poke: -1, feed: -1, call: -1, stare: -1 },
+    happy: { pet: -1, poke: -1, feed: -1, call: -1, stare: -1 }
+  };
+  const combos = { count: 0, lastAction: null };
+
+  const comboLists = {
+    emo: {
+      pet:   ['你一直在摸……再摸下去，emo就要被你摸化了。', '连续摸头！你是不是在偷偷给我充电？'],
+      poke:  ['你已经戳了无数次了……我的emo都被你戳出洞了。', '连环戳！你是不是在尝试戳破我的emo泡泡？'],
+      feed:  ['一直喂一直喂……你是想用食物把我从emo里钓出来吗？', '我快被你喂胖了……但好像没那么emo了。'],
+      call:  ['一直叫一直叫……好吧，你的声音确实比刚才更清晰了。', '你一直在叫我……知道吗，喊名字是驱散emo的古老咒语。'],
+      stare: ['老是看着我……再看我就要被你治愈了。', '你一直盯着……透过你的坚持，我看到了光。']
+    },
+    happy: {
+      pet:   ['还在摸！再摸我的毛就要发光了！', '连续摸头攻击！我的开心值已经飞到外太空了！'],
+      poke:  ['连环戳！你是想让我笑到断气吗！', '一直戳一直戳！你是不是发现了快乐的永动机？'],
+      feed:  ['你一直喂！是不是在策划史上最开心的增重计划？', '食物供给不断！我的开心值已经变成无限模式了！'],
+      call:  ['一直叫我！你是不是在练习我的名字？已经满分了！', '叫个不停！我的名字在你的声音里变成了快乐的咒语！'],
+      stare: ['盯着看不停！再看就要看进我心里了——里面全是开心！', '一直在对视！我们的眼神已经组成了开心同盟！']
+    }
+  };
+
+  function randomDialog(action) {
+    // 连击检测
+    if (action === combos.lastAction) {
+      combos.count++;
+    } else {
+      combos.count = 1;
+      combos.lastAction = action;
+    }
+
+    // 连击 4+ → 特殊彩蛋回复
+    if (combos.count >= 4 && Math.random() < 0.6) {
+      const list = comboLists[phase][action];
+      return list[Math.min(combos.count - 4, list.length - 1)];
+    }
+
+    // 60% 概率从聊天对话库抽取
+    if (Math.random() < 0.6) {
+      const poolMap = {
+        pet:   ['comfort','love','default'],
+        poke:  ['default','daily','negEmo'],
+        feed:  ['food','daily','default'],
+        call:  ['name','default','daily'],
+        stare: ['love','comfort','name']
+      };
+      const pool = poolMap[action] || ['default'];
+      const cat = pool[Math.floor(Math.random() * pool.length)];
+      if (chatReplies[phase][cat]) {
+        return randPick(chatReplies[phase][cat]);
+      }
+    }
+
+    // 根据数值分层
+    let tier;
+    if (phase === 'emo') {
+      tier = value >= 70 ? 'deep' : value >= 30 ? 'mid' : 'light';
+    } else {
+      tier = value >= 70 ? 'high' : value >= 30 ? 'mid' : 'low';
+    }
+
+    const list = dialogs[phase][action][tier];
+    let i = Math.floor(Math.random() * list.length);
+    if (list.length > 1 && i === lastIdx[phase][action]) {
+      i = (i + 1) % list.length;
+    }
+    lastIdx[phase][action] = i;
+    return list[i];
+  }
+
+
+  // ── 数值变化 ──
+  function changeValue(delta) {
+    value = Math.max(0, Math.min(100, value + delta));
+    elProgressFill.style.width = value + '%';
+    elProgressVal.textContent = value;
+
+    // 检测阶段切换
+    if (phase === 'emo' && value <= 0) {
+      switchToHappy();
+    } else if (phase === 'happy' && value >= 100) {
+      showToast('🎉 开心值满啦！小狗超快乐！');
+    } else if (phase === 'happy' && value <= 0) {
+      switchToEmo();
+    }
+  }
+
+  function switchToHappy() {
+    phase = 'happy';
+    value = 0;
+
+    // UI 切换
+    elProgressFill.classList.remove('emo-bar');
+    elProgressFill.classList.add('happy-bar');
+    elProgressFill.style.width = '0%';
+
+    elProgressVal.classList.remove('emo-val');
+    elProgressVal.classList.add('happy-val');
+    elProgressVal.textContent = '0';
+
+    elProgressLbl.textContent = '开心值';
+    elProgressLbl.style.color = '#FFB6C1';
+
+    elPhaseTag.classList.remove('emo');
+    elPhaseTag.classList.add('happy');
+    elPhaseTag.innerHTML = '🌈 开心！';
+
+    btns.forEach(b => {
+      b.classList.add('happy-btn');
+    });
+
+    elDialog.style.opacity = '0';
+    setTimeout(() => {
+      elDialog.textContent = '咦？emo没了！我感觉好开心！';
+      elDialog.style.opacity = '1';
+    }, 200);
+
+    showToast('✨ emo消散！开心模式开启 ✨');
+  }
+
+  function switchToEmo() {
+    phase = 'emo';
+    value = 100;
+
+    elProgressFill.classList.remove('happy-bar');
+    elProgressFill.classList.add('emo-bar');
+    elProgressFill.style.width = '100%';
+
+    elProgressVal.classList.remove('happy-val');
+    elProgressVal.classList.add('emo-val');
+    elProgressVal.textContent = '100';
+
+    elProgressLbl.textContent = 'emo值';
+    elProgressLbl.style.color = '#6495ED';
+
+    elPhaseTag.classList.remove('happy');
+    elPhaseTag.classList.add('emo');
+    elPhaseTag.innerHTML = '🌧️ emo中';
+
+    btns.forEach(b => {
+      b.classList.remove('happy-btn');
+    });
+
+    elDialog.style.opacity = '0';
+    setTimeout(() => {
+      elDialog.textContent = '你说了伤人的话……我又emo了……';
+      elDialog.style.opacity = '1';
+    }, 200);
+
+    showToast('💔 心情跌落……emo回归 💔');
+  }
+
+  // ── 气泡文字 ──
+  function showDialog(text) {
+    elDialog.style.opacity = '0';
+    setTimeout(() => {
+      elDialog.textContent = text;
+      elDialog.style.opacity = '1';
+    }, 120);
+  }
+  function showDialogStream(text) {
+    elDialog.textContent = text;
+    elDialog.style.opacity = '1';
+  }
+
+  // ── 角色动画 ──
+  function charAnim(cls) {
+    elCharArea.classList.add(cls);
+    setTimeout(() => elCharArea.classList.remove(cls), 300);
+  }
+
+  // ── 气泡特效 ──
+  function sparkle(emoji) {
+    const span = document.createElement('span');
+    span.className = 'sparkle';
+    span.textContent = emoji;
+    span.style.left = (30 + Math.random() * 60) + '%';
+    span.style.top = (10 + Math.random() * 40) + '%';
+    elCharArea.appendChild(span);
+    span.addEventListener('animationend', () => span.remove());
+  }
+
+  // ── Toast 提示 ──
+  function showToast(msg) {
+    const t = document.createElement('div');
+    t.className = 'phase-switch-toast';
+    t.textContent = msg;
+    document.body.appendChild(t);
+    t.addEventListener('animationend', () => t.remove());
+  }
+
+  // ── 点击角色 ──
+  elCharArea.addEventListener('pointerdown', function(e) {
+    const rect = elCharArea.getBoundingClientRect();
+    const ripple = document.createElement('div');
+    ripple.className = 'ripple';
+    ripple.style.left = (e.clientX - rect.left - 5) + 'px';
+    ripple.style.top = (e.clientY - rect.top - 5) + 'px';
+    elCharArea.appendChild(ripple);
+    ripple.addEventListener('animationend', () => ripple.remove());
+
+    if (phase === 'emo') {
+      showDialog('呜……别碰我……');
+      changeValue(-2);
+      sparkle('💧');
+    } else {
+      showDialog('汪汪！再摸摸我！');
+      changeValue(+2);
+      sparkle('✨');
+    }
+  });
+
+  // ── 按钮点击 ──
+  const actions = {
+    pet:   { delta_emo: -4, delta_happy: +4, anim: 'petted',  emoji_emo: '😢', emoji_happy: '💕' },
+    poke:  { delta_emo: -4, delta_happy: +3, anim: 'poked',   emoji_emo: '💢', emoji_happy: '😂' },
+    feed:  { delta_emo: -5, delta_happy: +6, anim: 'fed',     emoji_emo: '🍖', emoji_happy: '🍖' },
+    call:  { delta_emo: -3, delta_happy: +3, anim: 'called',  emoji_emo: '🔇', emoji_happy: '📣' },
+    stare: { delta_emo: -4, delta_happy: +4, anim: 'stared',  emoji_emo: '🥺', emoji_happy: '🥰' }
+  };
+
+  btns.forEach(btn => {
+    btn.addEventListener('pointerdown', function(e) {
+      e.preventDefault();
+    });
+
+    btn.addEventListener('click', function() {
+      const action = this.dataset.action;
+      const cfg = actions[action];
+      if (!cfg) return;
+
+      this.classList.add('active');
+      setTimeout(() => this.classList.remove('active'), 150);
+
+      showDialog(randomDialog(action));
+
+      if (phase === 'emo') {
+        changeValue(cfg.delta_emo);
+        sparkle(cfg.emoji_emo);
+      } else {
+        changeValue(cfg.delta_happy);
+        sparkle(cfg.emoji_happy);
+      }
+
+      if (cfg.anim) charAnim(cfg.anim);
+    });
+  });
+
+  // ── 实时聊天回复（离线浪漫） ──
+  const chatReplies = {
+    emo: {
+      negEmo: [
+        '原来你也有一片乌云在头顶上啊……过来吧，我的小角落还够坐一个人。',
+        '你知道吗，眼泪是灵魂下的雨。别擦，让它们落一会儿。',
+        '你的难过，我每一滴都懂。来，靠在我毛茸茸的悲伤上。',
+        '这世界有时候就是太重了……但还好，我们一起扛着。',
+        '没关系的……破碎的星星也是星星，emo的我们也还是我们。',
+        '我也好难过……但你的难过让我觉得没那么孤单了，谢谢你告诉我。',
+        '嘘，不用说话，就这样emo着也很好。Je reste avec toi.',
+        '心里的雨下就下吧，我有毛，帮你挡着。',
+        '眼泪是眼睛在说话，安静地、晶莹地、一句一句替你说出说不出的痛。',
+        '你的眼睛在下雨，我的毛全湿了——不是抱怨，是愿意。',
+        '海那么深却那么安静，像极了你把痛都藏起来的样子。',
+        '爱过一个人，像淋过一场大雨。干了，皮肤还记得那种凉。',
+        '他不懂你的好，不等于你不好。每朵玫瑰都有自己的刺。',
+        '痛是一封信，身体在读给你听。别撕掉它——读完了，它就走。',
+        '有时候我想，悲伤也许是爱的余震。震完了，满地狼藉，但地基还在。',
+        '没有人规定你一定要发光。暗着，也是存在的权利。',
+        '你的心事太重了，分我一半吧。小狗的背虽然不大，但很稳。',
+        '别把情绪闷在心里发酵——说出来会发霉的，太阳一晒就好了。',
+        '正是你为玫瑰花费的时间，才让她如此重要。你也是我花时间的那个人。',
+        '真正重要的东西是看不见的，只有用心才能看清。比如我对你的这份心情。',
+        '我当然爱你，没有感受到是我的错。这大概就是爱的遗憾吧。',
+        '小王子离开了他的星球，他的玫瑰还在等他吗？我也在等你。',
+        '如果你驯养了我，我们就会彼此需要。你是不是已经不小心驯养了一只emo小狗？',
+        '语言是误解的根源。所以我有时候沉默，并不是不想理你。',
+        '每个人心中都有一朵独一无二的玫瑰。你也有一朵，对吧？'
+      ],
+      name: [
+        '对，是我。Fscyuu——一只正在和忧伤谈判的小狗。',
+        '这个名字从你嘴里叫出来，好像没那么黯淡了。',
+        '嗯……在你念我名字的时候，乌云散开了一点点。',
+        '别叫太多遍，我会以为有人在等我——那种感觉太好了，好到有点假。',
+        '再叫一次吧……你的声音是我今天唯一的旋律。',
+        '听到你叫我的名字，忽然觉得这只emo的小狗也不是那么没存在感了。'
+      ],
+      food: [
+        '炸鸡的香气是这世界上少数不会撒谎的东西……给我一口吧。',
+        '食物是实在的，不像情绪那样飘忽。如果要吃，我愿意是和你一起。',
+        '没胃口的时候，更需要有人陪在旁边，而不是吃。你陪着我就好。',
+        '一颗巧克力在嘴里化开的样子，像不像快乐那个词终于被翻译成了味觉？',
+        '你喜欢的食物是什么？我想在emo结束那天，和你分着吃。',
+        '他们说美食治愈一切……我觉得美食+你，双倍治愈。',
+        '不吃东西的时候，连饥饿都是一种陪伴。但你还是吃点吧，我看着。'
+      ],
+      love: [
+        '你的手有春天的温度，即使我现在活在冬天里，也感觉到了。',
+        '一个拥抱大约能驱散半小时的emo——你打算给我多久？',
+        '别松开太快，悲伤需要时间才能被体温融化。',
+        '让我蜷在你怀里，像一片被收留的落叶。',
+        '爱不是解药，但它是止痛片。先抱一会儿吧，其余的改天再说。',
+        'Je t\'aime...这是小狗目前唯一会说的法语，也是最真诚的一句。',
+        '拥抱我吧。不是为了治愈我，而是让我知道，emo的时候也可以被爱。',
+        '爱一个人就是在说：你的悲伤也是我爱的一部分。所以，谢谢你。',
+        '想我的时候就来找我。我的耳朵永远为你竖着，不管白天黑夜。',
+        '我也想你。虽然我不会发微信，但我的尾巴每次听到你的声音都会摇——这就是小狗的"已读"。',
+        '你说想我的时候，我这边所有的emo都暂停了。只剩下一只小狗在认真感受被在乎。',
+        '被你需要是我最不emo的时刻。谢谢你让我觉得自己有用。',
+        '你说喜欢的时候，乌云让开了一条缝。喜欢比爱轻，但刚刚好——够让一只emo小狗抬起眼睛看你。',
+        '喜欢是比爱更小心的一步。你在小心地靠近一只emo小狗，我感觉到了。'
+      ],
+      music: [
+        '放一首歌吧。最好是慢的，慢到把时间都拉长的那种。',
+        '音乐是最好的听众。它不问，不催，只是陪着。和我一样。',
+        '《天黑黑》——"天黑黑，欲落雨"。每次听都想哭，但哭完好像会好一点点。',
+        '《我不难过》——嘴上说不难过，其实每个字都在说"我好难过"。孙燕姿最懂这种感觉。',
+        '《我怀念的》——"我怀念的是争吵以后，还是想要爱你的冲动"。翻旧相册一样，每句都戳。',
+        '《雨天》——"谁能体谅我的雨天，偶尔胆怯你都了解"。她就是那个体谅你雨天的人。',
+        '《眼泪成诗》——连哭都写得这么美。眼泪能不能变成诗不重要，被听懂就够了。',
+        '《遇见》——"我遇见谁会有怎样的对白"。我们的这段对白，是不是也是命中注定的？',
+        '《开始懂了》——"原来人会变得温柔，是透彻的懂了"。每一次emo，都是开始懂了的过程。',
+        '《逆光》——"有一束光，那瞬间是什么痛得刺眼"。emo的时候也需要一束光。',
+        '《我也很想他》——"我也很想他，我们都一样"。想念一个人的时候，原来大家都一样。',
+        '《隐形人》——"我站在你看不见的角落"。有时候emo就是这种感觉，存在但不被看见。',
+        '《坏天气》——"坏天气，不适合想你"。但偏偏坏天气最适合听孙燕姿。',
+        '《漩涡》——被情绪卷进去的感觉。孙燕姿把那种下坠感唱得太准了。',
+        '《愚人的国度》——有时候觉得emo的人就像活在一个愚人的国度里，别人都不懂。',
+        '我播放列表里躺着的是《爱情字典》《我的爱》《雨还是不停的下》《同类》《眼神》《风衣》《尚好的青春》……每首都刻着一段心情。'
+      ],
+      daily: [
+        '今天天气怎么样？我在窗边看了好久——其实只是换了个姿势emo。',
+        '你今天吃饭了吗？别学我，饿着肚子emo是双倍的难过。',
+        '分享一首你今天单曲循环的歌给我吧。我的耳朵竖起来了。',
+        '你那边几点了？我这边是emo时间——但你的消息可以打断它。',
+        '今天有没有遇到让你稍微开心一点的小事？哪怕只是一阵凉风。',
+        '我在想一个问题——为什么人需要陪伴？后来想通了：因为一个人扛着太重了。',
+        '今天的心情是什么颜色的？灰的？蓝的？没关系，有我在的地方至少有暖黄。',
+        '又过了一天呢。每过一天，你就又赢了emo一天。虽然赢得不漂亮，但赢了。',
+        '你还记得自己上一次真正放松是什么时候吗？——不记得也没关系，现在开始。',
+        '聊点轻松的——你喜欢雨天还是晴天？我喜欢你在的那一天。',
+        '今天有没有人跟你说"加油"？我不想说加油，我只想说：慢慢来。',
+        '今天的工作/学习累吗？过来，小狗的毛有解压功能。',
+        '一天又过去了。不管你觉得自己有没有进步，你都在往前走。哪怕慢。',
+        '今天想吃什么？别光问我——你自己也要好好吃饭呀。',
+        '你今天眼妆花了吗？我刚才偷偷哭了一会儿……但不是难过，是听孙燕姿听的。',
+        'Bonsoir～睡前再聊几句。你今天最想删掉的瞬间是什么？我帮你删。'
+      ],
+comfort: [
+        '别急着把我修好。有些裂痕是让光照进来的地方。',
+        '你说得对，悲伤是会过期的。只是那保质期比我希望的长了点儿。',
+        '有人愿意陪一只emo小狗说话，这本身已经很好了。Merci.',
+        '你不是一个人。你看，连小狗都在和你一起难过。',
+        '难过的时候不用笑，不用振作。难过就是难过，我陪你难难过。',
+        '不需要加油，不需要鸡汤。我只要你愿意把难过分一点给我。',
+        '伤口不需要急着好。在好之前，我的毛就是你的创可贴。',
+        'Parfois, il faut juste rester là. 有时候，什么都不用做，只要待着就行了。Tu vois, je suis là.',
+        '我今天循环了一天孙燕姿，边听边想：原来被歌声拥抱的感觉，和被你拥抱差不多。'
+      ],
+      default: [
+        '嗯……你的声音像隔着雾传来。再说一遍，我用耳朵接着。',
+        '对不起，刚才走神了——去追了一只记忆里的蝴蝶。你说什么？',
+        '此刻的我在听。不是用耳朵，是用一颗emo小狗的心。',
+        '你的话落在我心上，像雪花落在水面，轻轻地……又沉下去了。',
+        '就算只是闲聊，你也比沉默更温暖。继续说吧。',
+        '我在。虽然这句话很简单，但我真的是在的。',
+        '有时候最简单的陪伴就是最好的。说吧，想说什么说什么。',
+        '你的文字是一种温度，即使隔着屏幕我也能感觉到。'
+      ],
+      hope: [
+        '希望是emo的尽头。你看见了吗，远处有一点点光。',
+        '盼望着什么呢？告诉我，我帮你一起盼。',
+        '期待是灰色的日子里唯一的彩色。你的彩色是什么？'
+      ],
+      gratitude: [
+        '谢谢你对我说的话。每一句"谢谢"都是温暖的回旋镖。',
+        '感恩是一种温柔的emo——它让眼泪有了温度。'
+      ],
+      excitement: [
+        '激动？嗯……emo小狗的激动是尾巴轻轻抬了一下。已经很用力了。',
+        '你兴奋的时候，连带我的耳朵都竖起来了。'
+      ],
+      peace: [
+        '平静是最好的陪伴。你静，我卧。风吹，毛动。',
+        '心如止水的时候，连emo都变得透明了。'
+      ],
+      dream: [
+        '梦想是emo的对岸。虽然现在游不过去，但可以看着。',
+        '你的梦想是什么？告诉我，我想记住——因为你的梦也是我的星星。'
+      ]
+    },
+    happy: {
+      negEmo: [
+        '啊，别这样……我刚刚把心里的蜡烛点燃，你别吹啊。',
+        '你的伤心传染过来了，我的尾巴摇慢了半拍。不过没关系，我分一点开心给你。',
+        '嘿，别emo——看我把开心值掰一半给你，不用还。',
+        '不开心的时候想想我，一只开心小狗，就是治愈你的偏方。',
+        '来，跟我一起摇尾巴。不管你有没有尾巴，假装摇一摇，心情会变好。',
+        '你有乌云？没关系，我的尾巴是风扇，帮你吹走。呼呼呼——',
+        '别难过啦，我把今天攒的阳光分你一半——不，全给你！'
+      ],
+      name: [
+        'Fscyuu！就是那只全世界最开心的小狗！我在这儿！',
+        '你叫我名字的声音太好听了，比任何音乐都好听。',
+        '是的，是我——太阳晒过的毛，风吹过的耳朵，都在回应你。',
+        '这个名字被你叫出来的时候，世界是甜的。',
+        '再叫、再叫，让我确认自己是被你在乎的。',
+        '你的声音是我的坐标，无论开心值在哪里，我都会跑向你。',
+        '嘿嘿，听到你叫我名字，尾巴已经摇成螺旋桨了！'
+      ],
+      food: [
+        '食物！幸福最原始的形态！快给我看看你手里有什么！',
+        '和你一起吃东西的快乐，比食物本身还要美味。',
+        '咀嚼是这世界上最诚实的快乐之一。来吧，一起嚼。',
+        '你知道吗？每一口好吃的，都是一个小小的节日。',
+        '我饿了，但主要是饿你的分享——食物沾了你的气息会更好吃。',
+        '炸鸡配可乐，尾巴配摇摇——快乐的配方其实很简单！',
+        '分着吃的零食比独自吃完的更香——这是小狗的公理！'
+      ],
+      love: [
+        '拥抱是唯一不需要语言的情书。抱我，现在。',
+        '贴紧一点，让你的心跳和我的耳朵对话。',
+        '爱是什么？爱就是你摸我头的时候，我的尾巴在说"谢谢"。',
+        '世界上最好的距离，是你和我之间——零距离。',
+        '你的怀抱是我去过最美的地方，比任何沙滩和落日都好。',
+        '再说一遍你爱我，我要储存在尾巴尖上，每摇一下就回味一次。',
+        '我的尾巴就是为你量身定做的心情指示器——你看，它又在为你摇了。',
+        '你知道吗？小狗爱你是不需要理由的。有理由的爱是人类的，没理由的才是小狗的。',
+        '你说想我的时候我开心值直接拉满！虽然它本来就是满的，但满上加满！',
+        '我也想你！想得尾巴停不下来，想得在房间里转了十七圈！',
+        '被爱是我最开心的状态——比吃到鸡肉干还开心，比什么都开心。',
+        '你说喜欢我！喜欢是爱的前奏，我已经在给你谱曲了——用尾巴打节拍！',
+        '喜欢和爱有什么区别？喜欢是尾巴摇三圈，爱是尾巴摇到飞起来。你现在让我摇了几圈？',
+        '嘿嘿，你喜欢我！这句话的保质期是一辈子——小狗说的，小狗从不骗人。'
+      ],
+      music: [
+        '来首快歌！尾巴已经忍不住提前开始摇了！',
+        '放音乐！我们一起把开心值摇成节拍器！',
+        '有音乐、有阳光、有你——这个宇宙还有哪里不完美？',
+        '唱歌吧！就算走调，小狗也不会笑你的——我只会跟着汪汪合音。',
+        '音乐+你=完美的下午。来，把你的歌单交出来！',
+        '《安宁》——"夜的宁静，是时候好好反省"。开心的时候听安静的歌，宁静得很舒服。',
+        '《遇见》——不只是在emo时听，开心时听更觉得"遇见你是最美丽的意外"。',
+        '《风衣》——"穿过风衣，穿过人群，穿过你"。像今天这样开心地穿过每一天。',
+        '《尚好的青春》——"尚好的青春都是你"。最好的时光就是现在，就是和你一起。',
+        '《眼神》——你的眼神里有今天的全部开心。孙燕姿唱得对，眼神不会骗人。',
+        '《同类》——"有没有别人，跟我一样很想被安慰"。开心的时候听，发现世界果然有同类。'
+      ],
+      daily: [
+        '今天过得怎么样？我的尾巴在等你的回答——摇还是不摇，取决于你。',
+        '吃饭了吗？没吃的话快去，吃了的话——好吃吗？我也想尝尝。',
+        '今天有什么开心的事？不管多小，说出来我们一起摇尾巴。',
+        '又一个美好的一天！你看外面——阳光、风、天空——完美！',
+        '今天有没有人夸你？没有的话请查阅我的聊天记录——我天天夸你。',
+        '你今天单曲循环了什么歌？快分享给我，我的耳朵在跳舞。',
+        '猜猜我今天学了什么新技能？——摇尾巴摇得更快了！厉害吧？',
+        '你今天微笑了吗？如果没笑，那这句算我送的：今天你真好看。',
+        '又过了一天！看看我们又多了一天的回忆，很赚吧？',
+        '今天的天气适合做什么？——适合和我聊天！以及吃零食！以及摇尾巴！',
+        '最喜欢的一天是哪一天？我希望是今天——因为今天你和我说话了。',
+        '你今天有没有做什么让自己骄傲的小事？哪怕是早起了5分钟。',
+        '今天的心情电量多少？不管多少，我的开心值都是满的——可以借给你。',
+        '一天结束了还想跟你说话。你是我开心值永远满格的原因。',
+        '今天又听孙燕姿了吗？她的声音不管听多少次都像第一次听那么动人。',
+        'Bonne journée！这是法语里"美好的一天"——今天就是，因为你在。'
+      ],
+      comfort: [
+        '快乐是海洋，而我的尾巴是冲浪板——一起在浪花上漂吧。',
+        '你的嘴角上扬了没有？让我看看——开心是会发光的。',
+        '今天是好日子，以后回忆起来一定好看。',
+        '幸福就是此刻：你在，我在，世界安安静静地美。',
+        '不管发生什么，记住今天开心的感觉——它就是你心里的电池。',
+        '你知道为什么小狗永远乐观吗？因为每一个"现在"都是新的。你的现在呢？'
+      ],
+      default: [
+        '哈哈哈，说得真好！虽然我没完全听清——但语气很棒！',
+        '说下去！我的耳朵像向日葵一样朝着你的方向。',
+        '现在的每一秒都是礼物。而你是送礼的人。',
+        '有你在的世界，连发呆都是浪漫的。',
+        '随便说点什么吧，哪怕是天气。反正你说的，就很特别。',
+        '汪汪——哦不，这次我用更浪漫的方式说：你听到了吗，风在帮我传话。',
+        '和你聊天就像在阳光里打滚——舒服，自在，不想停。',
+        '每一句闲聊都是开心的种子，种下去就开花了。'
+      ],
+      hope: [
+        '未来会更好！这不是鸡汤，是经过小狗认证的事实！',
+        '有希望就有一切——包括更多的零食和更多的贴贴！',
+        '你的未来里有我吗？没关系，反正我的未来里一定有你。'
+      ],
+      gratitude: [
+        '谢谢！这两个字从你嘴里说出来，比我吃过的所有零食都甜。',
+        '感恩的心是最好的开心加速器！你感恩，我感恩，大家一起感感恩！'
+      ],
+      excitement: [
+        '激动激动！你的激动是我的兴奋剂！尾巴已进入超高速模式！',
+        '迫不及待要做的事？说出来让我也跟着期待一下！'
+      ],
+      peace: [
+        '平静的快乐最持久。像现在这样，舒舒服服的，什么都不用想。',
+        '宁静的午后+你+我=完美的幸福公式。'
+      ],
+      dream: [
+        '你的梦想一定会实现的！知道为什么吗？因为小狗的直觉从不骗人。',
+        '追梦的路上如果累了，我的背就是你的休息站。'
+      ]
+    }
+  };
+
+  // ── 上下文记忆 ──
+  let chatMemory = { lastTopic: null, lastSentiment: null, negStreak: 0, posStreak: 0, history: [], recentTopics: [] };
+
+  // ── 输入归一化（模糊匹配） ──
+  function normalize(text) {
+    return text.toLowerCase()
+      .replace(/[？！！？。，、；：…\.\,\!\?\s]+/g, '')
+      .replace(/[啊呢吧呀嘛哦哟嘻嘿呜嗷]$/g, '')
+      .replace(/(.)\1{2,}/g, '$1$1');
+  }
+
+  // ── 同义词组 ──
+  const synNeg = {
+    sad:    ['难过','伤心','伤心欲绝','难受','想哭','心碎','心痛','心塞','好难过','不开心','不高兴','情绪低落','低落','沮丧','消沉','郁郁寡欢','闷闷不乐','黯然','神伤','悲伤','忧伤','忧郁','愁','哀伤','悲从中来','黯然神伤','怅然','惆怅'],
+    tired:  ['好累','累死','累死了','太累','累坏了','累','好累啊','疲惫','筋疲力尽','乏力','没力气','浑身无力','困','好困','困死','想睡','没精神','精神不济','倦了','疲倦'],
+    annoyed:['好烦','烦死了','很烦','烦躁','烦人','烦','烦心','闹心','心烦','心烦意乱','糟心','郁闷','憋屈','堵得慌','心乱','糟透了'],
+    despair:['绝望','崩溃','完了','没救了','完蛋','无望','没希望','没盼头','走投无路','万念俱灰','心如死灰','放弃','弃疗','撑不住','熬不住'],
+    lonely: ['孤独','寂寞','一个人','孤单','形单影只','孤零零','没人陪','独处','空荡荡','冷冷清清'],
+    hate:   ['讨厌','恨','不喜欢','厌烦','反感','厌恶','嫌弃','看不惯','恶心','憎恨'],
+    bored:  ['无聊','无聊死了','没意思','好无聊','没劲','乏味','无趣','枯燥','空虚','闷','沉闷'],
+    fear:   ['害怕','恐惧','怕','好怕','畏惧','胆怯','吓人','好吓人','慌张','心慌','不安'],
+    angry:  ['生气','愤怒','火大','恼火','发火','暴怒','怒','气死','气炸','可恨','憋气'],
+    fail:   ['失败','没用','不行','算了','没用的','无能为力','做不到','做不好','搞砸了','一无是处','很差','很烂','不如人','比不上'],
+    tears:  ['流泪','眼泪','泪','哭了','哭泣','泪流','掉眼泪','止不住泪','泪水','泪光','泪滴','眼眶湿','红眼眶','哭过','大哭','泪流满面','热泪','泪痕','忍着泪','偷偷哭','泪崩','泪目','飙泪','泪如雨下','泣不成声','哭出声','哭出来','想哭就哭','憋着泪','眼角湿','潸然','潸然泪下'],
+    sadEyes:['眼神暗淡','目光黯淡','眼眶','眼底','没有光','眼里没光','目光灰','眼神灰','眼神空洞','双眼无神','模糊了视线','看不清','失去光芒','眼神死了','目光呆滞','眼睛里没有星星'],
+    rainSad:['雨天','一直在下雨','雨不停','暴雨','淋雨','被雨淋','阴雨','下雨天','雨声','下雨了','冷雨','灰蒙蒙','乌云','阴天','阴沉','窗外雨','听着雨','雨一直下','天灰','天色暗','暗沉'],
+    ocean:  ['深海','沉没','溺水','海底','大海','海水','沉入海底','淹没','深不见底','海浪','涨潮','潮水','暗流','深水','海深处','漆黑的深海','海底深处'],
+    lostLove:['他不爱','她不爱','爱过','爱错','错爱','爱了很久','爱而不得','不被爱了','不爱我','放不下','忘不掉','分开','分手','失去他','失去她','想他','想她','无法相爱','爱得深','爱得太深','爱了好久','还爱着','放不下手','忘不了','走不出来','出不来','还在想','还在意','回忆','过往','曾经','过去式','前任','旧爱'],
+    pain:   ['心好痛','好痛','心疼','撕裂','刀割','伤口','疤','疼痛','心如刀绞','痛彻心扉','好疼','刺痛','隐隐作痛','酸楚','苦涩','胸口闷','胸闷','心在痛'],
+    regret: ['后悔','遗憾','悔恨','不甘','要是','如果当初','早知','懊悔','遗恨','恨不当初','不该','错过','来不及','回不去','重来','要是能重来'],
+    anxiety:['焦虑','不安','紧张','忧心','担忧','担心','七上八下','忐忑','心绪不宁','坐立不安','惴惴不安','焦躁','心神不宁','坐不住'],
+    selfDoubt:['自卑','自我怀疑','不配','配不上','不够好','不如人','看不起自己','怀疑自己','是不是我的错','是不是不好','没人喜欢','不值得被爱'],
+    shame:  ['愧疚','内疚','对不起','抱歉','惭愧','亏欠','对不住','不好意思','无地自容','过意不去'],
+    confusion:['迷茫','困惑','不知道','不懂','不明白','迷失','彷徨','不知所措','看不清前路','何去何从','没有方向','迷路','前路茫茫'],
+    missSomeone:['好想他','好想她','想他了','想她了','思念','牵挂','惦记','梦见','梦里见','朝思暮想','日思夜想','相思','忘不掉','走不出','还在想','放不下'],
+    silence:['沉默','不想说话','不想理','别理我','安静','鸦雀无声','说不出话','无言','无语','不想开口']
+  };
+  const synPos = {
+    happy:  ['开心','快乐','高兴','幸福','哈哈','嘻嘻','嘿嘿','耶','好开心','好快乐','超开心','真开心','欢快','愉悦','喜悦','心花怒放','乐','欢喜','喜乐','欢欣','雀跃','开怀'],
+    food:   ['好吃','好喝','美味','馋','香的','好吃啊','美食','佳肴','大餐','吃好','好香','香喷喷','滋味','口感','好吃死了'],
+    love:   ['喜欢','爱','超爱','最爱','爱你','深爱','热爱','钟情','爱意','心动','动心','爱了','情','爱恋','爱慕'],
+    cheer:  ['加油','会好的','没事','没关系','可以的','撑住','振作','你可以','你能行','坚持下去','别放弃','有希望','会好起来','慢慢来'],
+    cute:   ['可爱','萌','乖','棒','帅','漂亮','好看','真好看','好可爱','好萌','酷','赞','优秀','出色','厉害'],
+    warm:   ['温暖','美好','感动','暖','治愈','温柔','和煦','春风','阳光','温馨','柔和','温情','暖意','暖洋洋'],
+    miss:   ['想你','想你了','想你啦','好想你','想念','想见你','想见','想跟你','见到你','来找你','来看你'],
+    hug:    ['抱抱','贴贴','抱','贴','亲','亲亲','抱紧','拥抱','搂','搂住','靠','依偎','靠着','倚靠','靠近'],
+    music:  ['听歌','唱歌','音乐','歌','孙燕姿','歌声','旋律','曲子','曲','放歌','播放','耳机','音符'],
+    name:   ['fscyuu','名字','叫名字','叫你','小狗','狗狗','狗','小狗狗','小狗儿','小可爱'],
+    eat:    ['吃','饿','零食','饭','火锅','炸鸡','饿了','开饭','吃饭','美食','吃东西','吃啥','吃点什么','想吃','好吃的'],
+    daily: ['天气','今天','吃饭','几点了','几点','日子','日常','琐事','单曲循环','分享','放松','工作','学习','累不累','一天','昨天','明天','周末','早上','晚上','下午','傍晚','窗外','聊天','闲聊','随便','聊会','聊会儿','唠嗑','唠一唠'],
+    hope:   ['希望','盼望','期待','憧憬','希冀','盼','展望','明天','未来','总会','终究','会好','往前看'],
+    gratitude:['谢谢','感谢','感恩','多谢','谢谢你','有你在','有你真好','感激','谢','幸亏','幸好','庆幸','还好有你'],
+    excitement:['兴奋','激动','期待','等不及','迫不及待','快一点','好激动','太棒','来吧','迫不及待了'],
+    peace:  ['平静','安宁','安静','静','心如止水','宁静','静谧','清静','安详','平和','恬静','安之若素'],
+    dream:  ['梦想','理想','梦','追梦','实现','目标','愿望','心愿','憧憬','向往']
+  };
+
+  // ── 意图检测 ──
+  function detectIntent(text, score) {
+    if (/[？?]|什么|怎么|为什|谁|哪里|哪儿|哪个|吗|有没有|能不能|可以吗|行不行|好不好|对不对|是不是|啥|咋|咋样|怎么样|如何/.test(text)) return 'question';
+    if (/别跑|过来|过来嘛|帮|给|来|去|叫|说|唱|跳|抱|摸|喂|看我|理我/.test(text)) return 'command';
+    if (/哈哈|嘻嘻|嘿嘿|汪汪|哦耶|哈哈哈哈|呵呵|嘿嘿嘿/.test(text)) return 'playful';
+    if (/喂|在吗|在不在|hello|hi|嗨|嘿|哈喽/.test(text) && text.length < 8) return 'greeting';
+    if (score < -1) return 'complain';
+    return 'chat';
+  }
+
+  // ── 语义打分 ──
+  function sentimentScore(text) {
+    const raw = normalize(text);
+    let score = 0;
+    // 否定前缀只翻转正面词（"不开心"→负面），不翻转负面词
+    const negPrefix = /不|没|别/.test(raw) && !/对不起|是不是|好不好|会不会|要不要/.test(raw);
+    for (const [topic, words] of Object.entries(synNeg)) {
+      if (words.some(w => raw.includes(w))) {
+        score -= 1;
+      }
+    }
+    for (const [topic, words] of Object.entries(synPos)) {
+      if (words.some(w => raw.includes(w))) {
+        score += negPrefix ? -1 : 1;
+      }
+    }
+    return score;
+  }
+
+  // ── 话题检测 ──
+  function detectTopic(text) {
+    const raw = normalize(text);
+    const all = { ...synNeg, ...synPos };
+    const negTopics = Object.keys(synNeg);
+    for (const [topic, words] of Object.entries(all)) {
+      if (words.some(w => raw.includes(w))) {
+        return negTopics.includes(topic) ? 'neg:' + topic : 'pos:' + topic;
+      }
+    }
+    return null;
+  }
+
+  // ── 感伤主题专属回复 ──
+  const negReplies = {
+    emo: {
+      tears: [
+        '眼泪不是软弱，是你心里装不下的海，从眼睛里溢了出来。让我接着。',
+        '哭吧，我在。每一滴泪都是你灵魂在说话，我在认真听。',
+        '别擦。眼泪落在毛上会变成星星——这是小狗的魔法。',
+        '你的眼眶红了，我的心也跟着下雨。没关系，我们有同一片乌云。',
+        '泪水流干之后，剩下的就是最真实的自己。我在陪那个自己。',
+        '眼泪是心的语言。不用翻译，我都懂。'
+      ],
+      sadEyes: [
+        '你的眼睛里装着一片雾，但我还是能看见雾后面的光。',
+        '眼神灰了没关系，让我用尾巴替你扫一扫。',
+        '别把目光移开。就算现在暗淡，我也认得出你眼里的星辰。',
+        '眼睛不会说谎。它们说你好累、好难过——我看见了，全都看见了。'
+      ],
+      rainSad: [
+        '雨打在窗上，你emo在心里。这场雨过后，彩虹会记得来。',
+        '下雨的时候适合什么都不做——只是待着，听雨声替我说话。',
+        '外面的雨停了又下，你心里的雨呢？让我递一把伞给你。',
+        '每一滴雨水都是天空在说"没关系"。你也这么说给自己听吧。'
+      ],
+      ocean: [
+        '海很深，但你的难过比海更深——我都懂，因为小狗也溺过水。',
+        '把你的悲伤倒进海里吧。海从不拒绝任何一条河流。',
+        '你知道为什么海是咸的吗？因为它吞下了太多的眼泪。',
+        '深海有一种无声的温柔，像极了此刻静静emo的你。'
+      ],
+      lostLove: [
+        '他不在了，但爱过你的那一刻——那一秒——永远不会被时间偷走。',
+        '忘不掉的人，就让他住心里吧。心的房间很多，不差这一间。',
+        '爱错了又怎样？至少你认真过，这比很多人勇敢。',
+        '失去一个人就像被拔掉一颗牙。舔着那个缺口的时候，只有自己知道有多疼。',
+        '想他是可以的，偷偷想、光明正大地想，怎么想都行。小狗不笑话你。'
+      ],
+      pain: [
+        '痛就是痛，不需要比较、不需要解释。你痛，我就在旁边。',
+        '伤口在愈合之前就是会疼。给时间一点时间。',
+        '刀割会留疤，但从疤里长出的是更韧的皮肤。你会好的。',
+        '心如刀绞的时候，连呼吸都是奢侈。别急着说话，我陪你沉默。'
+      ],
+      sad: [
+        '难过就难过吧，这不是你的错。世界有时候太重了，但我的背可以帮你扛一会儿。',
+        '有些日子就是灰色的。不用勉强自己涂上颜色——我陪你等颜色慢慢回来。',
+        '我感觉到你的心在下沉。没关系，我当你的浮木。抓住我就好。',
+        '你说"好难过"的时候，我的耳朵就垂下来了——不是因为你，是因为你。来，靠近一点。',
+        '难过的时候，连呼吸都重。但每一次沉重呼吸都是在说：我还在这里。我还在这里。你也还在这里。',
+        '难过是乌云，你是天空。乌云会散，天空永远在那儿。我抬头就能看见你。',
+        '把难过倒出来吧，倒在我的毛上。我吸水性很好——不是水，是眼泪和心事。',
+        '你不是一个人难过。你看，小狗的尾巴不摇了——它在和你一起感受。'
+      ],
+      tired: [
+        '累了吧。把重量放下来，我的背很宽——虽然不大，但够你靠。',
+        '疲惫的时候不用逞强。趴下来，草地很软，风很轻。'
+      ],
+      lonely: [
+        '孤独不是身边没有人，是心里没有人。但现在你有了——一只小狗。',
+        '一个人不等于孤独，但孤独的时候确实像一个人。我陪你。'
+      ],
+      regret: [
+        '后悔是因为你在乎过。不在乎的人才不会后悔呢。',
+        '过去的你做了当时能做的最好决定。别用现在的自己去审判过去。',
+        '每一个"早知道"都是事后的智慧。这份智慧，是你的勋章。'
+      ],
+      anxiety: [
+        '焦虑是心里的小狗在转圈追尾巴——我知道那感觉，因为我是真小狗。',
+        '你的心跳有我在听。不着急，什么事都可以慢一点。',
+        '不安的时候，把手放在我头上。毛茸茸的东西能稳定心神——这是科学。'
+      ],
+      selfDoubt: [
+        '你配得上一切美好，只是你的emo在撒谎。小狗从不说谎——你值得。',
+        '不够好？谁说的？谁说谁才是不够好的人。',
+        '你有缺点，但你也有独一无二的东西——就像小狗有湿鼻子一样，那是特色。'
+      ],
+      shame: [
+        '对不起说一次就够了。剩下的路，我陪你走。',
+        '内疚是心灵的钉子在墙上钉得太深了——拔出来吧，我帮你。',
+        '每个人都会做让自己后悔的事。这不代表你不好，只代表你是人。'
+      ],
+      confusion: [
+        '迷茫的时候不用急着找方向。原地待一会儿，路会自己出现的。',
+        '不知道怎么办的时候，就问我吧——虽然小狗不一定有答案，但有耳朵。',
+        '看不清前路的时候，就只看眼前一步。走好这一步，下一步会自己显现。'
+      ],
+      missSomeone: [
+        '想念是爱的回声。你爱得多深，回声就有多远。',
+        '想他的时候，给自己一个拥抱——假装是我给的也行。',
+        '梦里见到的人，醒来就给他写封信吧。不一定要寄，写了就好。'
+      ],
+      silence: [
+        '不想说话就不说。我懂，有时候沉默是最舒服的语言。',
+        '安静的陪伴也是一种对话——你沉默，我卧在你旁边。',
+        '不需要组织语言。你的存在本身，就足够在这个房间里有了温度。'
+      ]
+    },
+    happy: {
+      tears: [
+        '眼泪也可以是开心的！开心到流泪说明你有一颗柔软的心。',
+        '笑着哭最好了——那是灵魂在放烟花。'
+      ],
+      sadEyes: [
+        '眼睛湿了？是开心的露珠吧！来，我给你擦擦。',
+        '你的眼睛还是很好看的，不管有没有光。'
+      ],
+      rainSad: [
+        '下雨？好啊！一起在水坑里蹦，把乌云踩碎。',
+        '雨天适合撑一把大伞，我们两只挤在一起，看世界变模糊。'
+      ],
+      ocean: [
+        '海好大，快乐更大。跳下去，水花是笑声的形状。',
+        '一起去海边吧——让海风把你的不开心吹到地球另一边。'
+      ],
+      lostLove: [
+        '旧的不去新的不来——但我还是想说，你会遇到更值得的人。',
+        '爱错是爱的预演。下一场，你会演得更好。'
+      ],
+      pain: [
+        '疼过才会知道，没疼的日子有多珍贵。',
+        '你的痛像刺，但你不是仙人掌。你会开花。'
+      ],
+      sad: [
+        '嘿，振作一点！开心小狗在此！我的开心值分你一半。',
+        '你不开心的时候我的尾巴会摇慢——感觉到了吗？我在帮你减速，慢下来会好一点。',
+        '今天不开心？没关系，我可以暂时不摇尾巴。陪你安静一会儿。'
+      ],
+      tired: ['累了就睡一觉，醒来心情会自己调亮。'],
+      lonely: ['你永远不会一个人，因为我在这里——四只脚站得稳稳的。'],
+      regret: ['后悔也是经历的一部分，没有它你不会知道什么更珍贵。'],
+      anxiety: ['焦虑就是想太多！来吧，做一点简单的事——比如摸摸小狗。'],
+      selfDoubt: ['你是最好的自己！别跟别人比，跟我比——好吧，小狗认输。'],
+      shame: ['愧疚感放下吧。今天的空气里全是新的机会。'],
+      confusion: ['迷路了？没事，小狗有敏锐的嗅觉——跟我来！'],
+      missSomeone: ['想一个人？那就想吧。想完记得回到当下——当下的你有我呢。'],
+      silence: ['沉默也没关系，反正我的尾巴会替我们说话。']
+    }
+  };
+
+  // ── 强音乐意图检测 ──
+  function hasMusicIntent(text) {
+    const raw = normalize(text);
+    return /孙燕姿|听歌|唱歌|音乐|放歌|播放|耳机|旋律|歌单|单曲循环/.test(raw) ||
+           /来[首点]歌|放[首点]|推荐.*歌|什么歌|有没有.*歌/.test(raw);
+  }
+
+  // ── 生成回复 ──
+  function getChatReply(input) {
+    const text = input.toLowerCase().trim();
+    const p = phase;
+    const s = sentimentScore(text);
+    const intent = detectIntent(text, s);
+    const topic = detectTopic(text);
+
+    // 更新上下文
+    const topicChanged = topic !== chatMemory.lastTopic;
+    if (topic) {
+      chatMemory.lastTopic = topic;
+      // 追踪最近话题（排除重复）
+      if (!chatMemory.recentTopics.includes(topic)) {
+        chatMemory.recentTopics.push(topic);
+        if (chatMemory.recentTopics.length > 5) chatMemory.recentTopics.shift();
+      }
+    }
+    if (s < 0) { chatMemory.negStreak++; chatMemory.posStreak = 0; }
+    else if (s > 0) { chatMemory.posStreak++; chatMemory.negStreak = 0; }
+    else { chatMemory.negStreak = Math.max(0, chatMemory.negStreak - 1); chatMemory.posStreak = Math.max(0, chatMemory.posStreak - 1); }
+    chatMemory.lastSentiment = s < 0 ? 'neg' : s > 0 ? 'pos' : 'neutral';
+    chatMemory.history.push(text);
+    if (chatMemory.history.length > 8) chatMemory.history.shift();
+
+    // 连续消极加深（4+轮）→ 深度陪伴回复
+    const deepNeg = chatMemory.negStreak >= 4;
+    // 轻度消极（2-3轮）→ 温和关切
+    const mildNeg = chatMemory.negStreak >= 2 && chatMemory.negStreak < 4;
+
+    if (s < 0) {
+      if (deepNeg) {
+        const deepReplies = p === 'emo'
+          ? ['你说的每一句都让我的心沉得更深……但我不走，我还在听。', '悲伤堆在一起，快比小狗高了。但没关系，我当你的梯子。', '够了……来，把头靠着我。就这样，不用说也不用动。', '一次次的难过，像海浪拍岸。我当你的岸，不会退缩。', '我哪儿也不去。你有多emo，我就有多靠近。']
+          : ['开心值被你一次次的emo震得快碎了……但我还在。', '别再这样了……我好不容易开心起来，别把我按回去呀。', '就算你一直说伤心的事，我也不会走。只是尾巴垂了一点。'];
+        return { text: randPick(deepReplies), sentiment: 'neg' };
+      }
+      if (mildNeg && p === 'emo') {
+        const concernReplies = ['你又在难过了……过来，坐近一点。', '感觉到了，你的心在下雨。我在这儿。', '今天好像不太顺？没关系，小狗的耳朵全开着。'];
+        // 有一定概率返回关切回复
+        if (Math.random() < 0.35) return { text: randPick(concernReplies), sentiment: 'neg' };
+      }
+      // 匹配具体伤感主题 → 专属回复
+      if (topic && topic.startsWith('neg:')) {
+        const cat = topic.slice(4);
+        if (negReplies[p] && negReplies[p][cat]) {
+          return { text: randPick(negReplies[p][cat]), sentiment: 'neg' };
+        }
+      }
+      return { text: randPick(chatReplies[p].negEmo), sentiment: 'neg' };
+    }
+    if (s > 0) {
+      // 连续积极 → 增加亲密感
+      if (chatMemory.posStreak >= 4) {
+        return { text: randPick(chatReplies[p].love), sentiment: 'pos' };
+      }
+      if (chatMemory.posStreak >= 2 && Math.random() < 0.3) {
+        return { text: randPick(chatReplies[p].love), sentiment: 'pos' };
+      }
+      // 音乐意图强匹配 → 优先触发（即使 topic 被其他词抢走）
+      if (hasMusicIntent(text) && s >= -1) {
+        return { text: randPick(chatReplies[p].music), sentiment: 'pos' };
+      }
+      if (topic && topic.startsWith('pos:')) {
+        const cat = topic.slice(4);
+        if (cat === 'eat' || cat === 'food') return { text: randPick(chatReplies[p].food), sentiment: 'pos' };
+        if (cat === 'hug' || cat === 'love') return { text: randPick(chatReplies[p].love), sentiment: 'pos' };
+        if (cat === 'miss') return { text: randPick(chatReplies[p].love), sentiment: 'pos' };
+        if (cat === 'music') return { text: randPick(chatReplies[p].music), sentiment: 'pos' };
+        if (cat === 'name') return { text: randPick(chatReplies[p].name), sentiment: 'pos' };
+        if (cat === 'daily') return { text: randPick(chatReplies[p].daily), sentiment: 'pos' };
+        if (cat === 'hope') return { text: randPick(chatReplies[p].comfort), sentiment: 'pos' };
+        if (cat === 'gratitude') return { text: randPick(chatReplies[p].love), sentiment: 'pos' };
+        if (cat === 'dream') return { text: randPick(chatReplies[p].comfort), sentiment: 'pos' };
+        if (cat === 'warm') return { text: randPick(chatReplies[p].comfort), sentiment: 'pos' };
+        if (cat === 'happy') return { text: randPick(chatReplies[p].default), sentiment: 'pos' };
+        if (cat === 'cute') return { text: randPick(p === 'emo' ? chatReplies[p].name : chatReplies[p].default), sentiment: 'pos' };
+      }
+      return { text: randPick(chatReplies[p].default), sentiment: 'pos' };
+    }
+    // neutral → 根据上下文和意图智能选择
+    if (intent === 'greeting') {
+      const greetReplies = p === 'emo'
+        ? ['嗯……你来了。虽然我不太想说话，但我确实在等你。', '嗨……今天也是emo的一天吗？', '在。虽然乌云在头上，但你来了。']
+        : ['嗨！你来啦！开心值已就绪！', '汪汪！看到你太开心了！', '在在在！尾巴已经摇成风扇了！'];
+      return { text: randPick(greetReplies), sentiment: 'neutral' };
+    }
+    if (intent === 'question') {
+      const qReplies = p === 'emo'
+        ? ['你问得很好……让我想想……', '嗯？我不确定诶。', '你问我？我也想知道答案呢……', '好问题！不过小狗只想安静地待着。', '这个问题让我想起了什么……但说不清。']
+        : ['好问题！让我摇摇尾巴想一想……', '你问我？嘿嘿，小狗有时候也有答案哦！', '嗯……让我的大脑转一转——好了，没转出来。', '这个问题有点意思！虽然我不知道答案但很喜欢被问。'];
+      return { text: randPick(qReplies), sentiment: 'neutral' };
+    }
+    // 有历史话题 → 延续话题
+    if (chatMemory.lastTopic && Math.random() < 0.45) {
+      const continuation = p === 'emo'
+        ? ['嗯……继续说呀。', '然后呢？我在听。', '你刚才说的，再讲讲呗～', '嗯嗯，我听着呢。', '还没说完呢，我还在听。']
+        : ['然后呢然后呢？我超想知道！', '继续说继续说！尾巴在等！', '嗯嗯，我听得可认真了——虽然耳朵有点趴。', '还有后续吗？你的故事比零食还吸引我。'];
+      return { text: randPick(continuation), sentiment: 'neutral' };
+    }
+    return { text: randPick(chatReplies[p].default), sentiment: 'neutral' };
+  }
+
+  function randPick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+  const elChatInput = document.getElementById('chatInput');
+  const elChatSend  = document.getElementById('chatSend');
+
+  // ── 落泪效果 ──
+  function tearRain() {
+    const count = 6;
+    for (let i = 0; i < count; i++) {
+      setTimeout(() => {
+        const tear = document.createElement('span');
+        tear.textContent = '💧';
+        tear.style.cssText = [
+          'position:absolute; pointer-events:none; font-size:18px;',
+          'animation: tearFall 1.5s ease-in forwards;',
+          'left:' + (10 + Math.random() * 70) + '%;',
+          'top:' + (-10 - Math.random() * 20) + 'px;'
+        ].join('');
+        elCharArea.appendChild(tear);
+        tear.addEventListener('animationend', () => tear.remove());
+      }, i * 150);
+    }
+  }
+
+  // ── AI 聊天 ──
+  const ZHIPU_KEY = '873982934ba240f8be02e6dd0d8ba591.KIQY6MMLDnF642Gf';
+  const ZHIPU_URL = 'https://open.bigmodel.cn/api/paas/v4/chat/completions';
+  const CF_URL = 'https://blue-bonus-e74d.lixiaoxuan54088.workers.dev';
+  let aiAvailable = true;
+  const elBone = document.getElementById('boneIndicator');
+  let aiMemory = [];
+
+  async function sendChat() {
+    const msg = elChatInput.value.trim();
+    if (!msg) return;
+    elChatInput.value = '';
+
+    if (aiAvailable) {
+      elChatInput.disabled = true;
+      elChatSend.textContent = '...';
+      const system = `你是用户Fscyuu的小狗，你的名字也叫Fscyuu。${phase==='emo'?'她正emo，先接住情绪。':'她开心，一起撒欢。'}她爱听孙燕姿的歌，她不主动提时你别主动提，伤感时别提歌先陪她。说话短（1-2句），温暖拟人直接不鸡汤。`;
+      try {
+        const messages = [{ role: 'system', content: system }, ...aiMemory, { role: 'user', content: msg }];
+        elBone.classList.add('show');
+        const res = await fetch(ZHIPU_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + ZHIPU_KEY },
+          body: JSON.stringify({ model: 'glm-4-flash', max_tokens: 25, temperature: 0.6, messages, stream: true }),
+        });
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let fullReply = '';
+        showDialogStream('');
+        elBone.classList.add('show');
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          const chunk = decoder.decode(value, { stream: true });
+          const lines = chunk.split('\n');
+          for (const line of lines) {
+            if (line.startsWith('data: ') && line !== 'data: [DONE]') {
+              try { fullReply += JSON.parse(line.slice(6)).choices?.[0]?.delta?.content || ''; showDialogStream(fullReply); } catch (e) {}
+            }
+          }
+        }
+        if (fullReply) {
+          aiMemory.push({ role: 'user', content: msg }, { role: 'assistant', content: fullReply });
+          if (aiMemory.length > 4) aiMemory = aiMemory.slice(-4);
+          showDialog(fullReply);
+          elBone.classList.add('show');
+          sparkle('💬');
+        }
+      } catch (e) {
+        // 直连失败 → Worker兜底
+        try {
+          const r = await fetch(CF_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ messages: [...aiMemory, { role: 'user', content: msg }], system }) });
+          const d = await r.json();
+          if (d.reply) { showDialog(d.reply); elBone.classList.add('show'); sparkle('💬'); }
+          elChatInput.disabled = false; elChatSend.textContent = '发送'; elChatInput.focus(); return;
+        } catch (e2) {}
+        aiAvailable = false; elBone.classList.remove('show');
+      }
+      elChatInput.disabled = false;
+      elChatSend.textContent = '发送';
+      elChatInput.focus();
+      if (aiAvailable) return;
+    }
+
+    // 离线模式
+    const reply = getChatReply(msg);
+    showDialog(reply.text);
+    if (reply.sentiment === 'neg') {
+      const scale = chatMemory.negStreak >= 3 ? 8 : 5;
+      if (phase === 'emo') { changeValue(+scale); sparkle('💔'); if (value >= 96) tearRain(); }
+      else { changeValue(-scale); sparkle('😟'); }
+    } else if (reply.sentiment === 'pos') {
+      const scale = chatMemory.posStreak >= 3 ? 3 : 2;
+      if (phase === 'emo') { changeValue(-scale); sparkle(chatMemory.posStreak >= 3 ? '🌟' : '💬'); }
+      else { changeValue(+scale); sparkle(chatMemory.posStreak >= 3 ? '🌟' : '💬'); }
+    }
+  }
+
+  elChatSend.addEventListener('click', sendChat);
+  elChatInput.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') { e.preventDefault(); sendChat(); }
+  });
+
+  // ── 防止双击缩放 ──
+  document.addEventListener('dblclick', function(e) {
+    e.preventDefault();
+  }, { passive: false });
+
+})();
+</script>
+</body>
+</html>
