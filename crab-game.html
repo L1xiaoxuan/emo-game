@@ -1533,17 +1533,28 @@ comfort: [
       try {
         const system = `你是用户Fscyuu的小狗，你的名字也叫Fscyuu。${phase==='emo'?'她正emo，先接住情绪。':'她开心，一起撒欢。'}她爱听孙燕姿的歌，她不主动提时你别主动提，伤感时别提歌先陪她。说话短（1-2句），温暖拟人直接不鸡汤。`;
         const messages = [{ role: 'system', content: system }, ...aiMemory, { role: 'user', content: msg }];
+        const isLocal = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
         let data;
         try {
-          // 直连智谱
-          const res = await fetch(ZHIPU_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + ZHIPU_KEY },
-            body: JSON.stringify({ model: 'glm-4-flash', max_tokens: 20, temperature: 0.6, messages }),
-          });
-          data = await res.json();
+          if (isLocal) {
+            // 本地开发 → 走服务器代理（最稳）
+            const res = await fetch('/api/chat', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ messages, system }),
+            });
+            data = await res.json();
+          } else {
+            // 线上 → 直连智谱
+            const res = await fetch(ZHIPU_URL, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + ZHIPU_KEY },
+              body: JSON.stringify({ model: 'glm-4-flash', max_tokens: 20, temperature: 0.6, messages }),
+            });
+            data = await res.json();
+          }
         } catch {
-          // 直连失败 → Vercel代理
+          // 失败 → Vercel代理兜底
           const res = await fetch('https://emo-game-ten.vercel.app/api/chat', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
